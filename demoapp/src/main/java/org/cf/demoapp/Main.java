@@ -11,7 +11,7 @@ import org.cf.smalivm.emulate.MethodEmulator;
 
 public class Main {
 
-    private static final String SMALI_PATH = "resources/";
+    private static final String SMALI_PATH = "C:\\Users\\WZTong\\OneDrive\\Documents\\IdeaProject\\DalvikDeObf\\demoapp\\resources\\";
 
     private static VirtualMachine vm;
 

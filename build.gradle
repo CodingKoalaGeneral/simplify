@@ -1,3 +1,4 @@
+//file:noinspection GroovyAssignabilityCheck
 buildscript {
     ext.kotlin_version = '1.4.0'
     repositories {
@@ -52,21 +53,24 @@ subprojects {
         apply plugin: 'application'
     } else if (project.name == 'smalivm') {
         apply plugin: 'java-library'
+        apply plugin: 'application'
         version = '1.3.0'
     } else {
-        apply plugin: 'org.jetbrains.kotlin.jvm'
+//        apply plugin: 'org.jetbrains.kotlin.jvm'
         apply plugin: 'application'
     }
+    // Useless, just note
+    applicationDefaultJvmArgs = ['--add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED']
 
-    if (project.name != 'demoapp' && project.name != 'sdbg') {
-        jacocoTestReport {
-            reports {
-                html.enabled = true
-                xml.enabled = true
-                csv.enabled = false
-            }
-        }
-    }
+//    if (project.name != 'demoapp' && project.name != 'sdbg') {
+//        jacocoTestReport {
+//            reports {
+//                html.enabled = true
+//                xml.enabled = true
+//                csv.enabled = false
+//            }
+//        }
+//    }
 
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -106,21 +110,21 @@ subprojects {
 
 // These aren't intended to have tests and shouldn't count against code coverage
 def reportProjects = (subprojects - project(':demoapp') - project(':sdbg'))
-task jacocoRootReport(type: JacocoReport, group: 'Coverage reports') {
-    description = 'Generates an aggregate report from all subprojects'
-    dependsOn(reportProjects.test)
-
-    sourceDirectories.from = reportProjects.sourceSets.main.allJava.srcDirs
-    //additionalSourceDirs.from = reportProjects.sourceSets.main.allJava.srcDirs
-    classDirectories.from = reportProjects.sourceSets.main.output.classesDirs
-    executionData.from = reportProjects.jacocoTestReport.executionData
-
-    reports {
-        html.enabled = true
-        xml.enabled = true
-        csv.enabled = false
-    }
-}
+//task jacocoRootReport(type: JacocoReport, group: 'Coverage reports') {
+//    description = 'Generates an aggregate report from all subprojects'
+//    dependsOn(reportProjects.test)
+//
+//    sourceDirectories.from = reportProjects.sourceSets.main.allJava.srcDirs
+//    //additionalSourceDirs.from = reportProjects.sourceSets.main.allJava.srcDirs
+//    classDirectories.from = reportProjects.sourceSets.main.output.classesDirs
+//    executionData.from = reportProjects.jacocoTestReport.executionData
+//
+//    reports {
+//        html.enabled = true
+//        xml.enabled = true
+//        csv.enabled = false
+//    }
+//}
 
 coveralls {
     sourceDirs = reportProjects.sourceSets.main.allJava.srcDirs.flatten()
