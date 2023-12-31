@@ -26,6 +26,7 @@ import org.jf.dexlib2.iface.reference.StringReference;
 import org.jf.dexlib2.iface.reference.TypeReference;
 import org.jf.dexlib2.writer.builder.DexBuilder;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildBoolean {
+    @Nested
+    class BuildBoolean {
 
         @Test
         public void withFalse() {
@@ -114,7 +116,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildByte {
+    @Nested
+    class BuildByte {
 
         @Test
         public void with4BitLiteral() {
@@ -148,7 +151,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildDouble {
+    @Nested
+    class BuildDouble {
 
         @Test
         public void withHeapItemWithDoubleTypeAndLongValue() {
@@ -186,7 +190,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildFloat {
+    @Nested
+    class BuildFloat {
 
         @Test
         public void withHeapItemWitFloatTypeAndIntegerValue() {
@@ -222,7 +227,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildInteger {
+    @Nested
+    class BuildInteger {
 
         @Test
         public void with15BitLiteral() {
@@ -270,7 +276,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildLong {
+    @Nested
+    class BuildLong {
 
         @Test
         public void with31BitLiteral() {
@@ -309,7 +316,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildObject {
+    @Nested
+    class BuildObject {
 
         DexBuilder dexBuilder;
 
@@ -340,7 +348,8 @@ public class ConstantBuilderTest {
         }
     }
 
-    public static class BuildShort {
+    @Nested
+    class BuildShort {
 
         @Test
         public void with15BitLiteral() {
