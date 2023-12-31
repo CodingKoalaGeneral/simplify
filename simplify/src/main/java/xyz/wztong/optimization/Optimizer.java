@@ -4,6 +4,7 @@ import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionGraph;
 import xyz.wztong.optimization.impl.ConstantPropagation;
 import xyz.wztong.optimization.impl.DeadFunctionResult;
+import xyz.wztong.optimization.impl.NopInstruction;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +17,7 @@ public class Optimizer {
 
     static {
         optimizations.add(new ConstantPropagation());
+        optimizations.add(new NopInstruction());
         optimizations.add(new DeadFunctionResult());
     }
 
