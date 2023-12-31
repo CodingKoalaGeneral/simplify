@@ -15,8 +15,8 @@ public class Main {
 
     public static void main(String[] args) throws IOException, VirtualMachineException {
         var vm = new VirtualMachineFactory().build(SMALI_PATH);
-        var graph = vm.execute("LConstantPropgationTest;->invokeIntegerMethods()I");
-        Optimizer.optimize(graph);
+        Optimizer.optimize(vm.execute("LConstantPropgationTest;->invokeIntegerMethods()I"));
+        Optimizer.optimize(vm.execute("LConstantPropgationTest;->getIntegerMethod()I"));
         vm.getClassManager().getDexBuilder().writeTo(new FileDataStore(new File(OUTPUT_DEX_PATH)));
         Utils.classManagerFactoryDisassemble(new File(OUTPUT_DEX_PATH), new File(OUTPUT_PATH));
     }

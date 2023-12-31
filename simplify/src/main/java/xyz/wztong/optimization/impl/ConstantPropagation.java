@@ -1,15 +1,16 @@
-package xyz.wztong.optimization;
+package xyz.wztong.optimization.impl;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.HeapItem;
 import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.iface.instruction.OneRegisterInstruction;
+import xyz.wztong.optimization.ConstantBuilder;
+import xyz.wztong.optimization.Optimization;
 
 import java.util.Collections;
 import java.util.stream.IntStream;
 
-@SuppressWarnings("DuplicatedCode")
-public class constantPropagation implements Optimization {
+public class ConstantPropagation implements Optimization {
 
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
@@ -25,13 +26,11 @@ public class constantPropagation implements Optimization {
             if (instruction == null) {
                 return false;
             }
-            var register = instruction.getRegisterA();
-            HeapItem consensus = manipulator.getRegisterConsensus(address, register);
+            HeapItem consensus = manipulator.getRegisterConsensus(address, instruction.getRegisterA());
             if (consensus == null || consensus.isUnknown()) {
                 return false;
             }
-            String type = consensus.isPrimitive() ? consensus.getType() : consensus.getValueType();
-            return ConstantBuilder.canConstantizeType(type);
+            return ConstantBuilder.canConstantizeType(consensus.isPrimitive() ? consensus.getType() : consensus.getValueType());
         })).sorted(Collections.reverseOrder()).toList();
         for (int address : validAddresses) {
             BuilderInstruction original = manipulator.getInstruction(address);

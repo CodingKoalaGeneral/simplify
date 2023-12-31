@@ -2,18 +2,21 @@ package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionGraph;
+import xyz.wztong.optimization.impl.ConstantPropagation;
+import xyz.wztong.optimization.impl.DeadFunctionResult;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("UnusedReturnValue")
 public class Optimizer {
 
-    private static final List<Optimization> optimizations = new ArrayList<>();
+    private static final List<Optimization> optimizations = new LinkedList<>();
     private static final int DEFAULT_PASS = 5;
 
     static {
-        optimizations.add(new constantPropagation());
+        optimizations.add(new ConstantPropagation());
+        optimizations.add(new DeadFunctionResult());
     }
 
     public static int optimize(ExecutionGraph graph) {
