@@ -14,6 +14,12 @@ public class NopInstruction implements Optimization {
             var instruction = manipulator.getInstruction(address);
             if (instruction == null) return false;
             var opcode = instruction.getOpcode();
+            int nextAddress = address + instruction.getCodeUnits();
+            var nextInstruction = manipulator.getLocation(nextAddress).getInstruction();
+            if (nextInstruction != null && nextInstruction.getOpcode().equals(Opcode.ARRAY_PAYLOAD)) {
+                // Necessary nop padding
+                return false;
+            }
             return Opcode.NOP.equals(opcode);
         }).sorted(Comparator.reverseOrder()).toList();
         validAddresses.forEach(manipulator::removeInstruction);
