@@ -3,6 +3,7 @@ package xyz.wztong.optimization.impl;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.HeapItem;
 import org.jf.dexlib2.iface.instruction.OneRegisterInstruction;
+import xyz.wztong.Utils;
 import xyz.wztong.optimization.ConstantBuilder;
 import xyz.wztong.optimization.Optimization;
 
@@ -32,6 +33,7 @@ public class ConstantPropagation implements Optimization {
             return ConstantBuilder.canConstantizeType(consensus.isPrimitive() ? consensus.getType() : consensus.getValueType());
         }).sorted(Collections.reverseOrder()).toList();
         validAddresses.forEach(address -> {
+            Utils.print("ConstantPropagation: " + manipulator.getOp(address));
             var original = manipulator.getInstruction(address);
             var constInstruction = ConstantBuilder.buildConstant(address, manipulator);
             assert original != null;

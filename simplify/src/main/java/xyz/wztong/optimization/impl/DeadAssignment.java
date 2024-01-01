@@ -42,7 +42,10 @@ public class DeadAssignment implements Optimization {
             }
             return !isAnyRegisterUsed(address, assigned, manipulator);
         }).sorted(Collections.reverseOrder()).toList();
-        validAddresses.forEach(manipulator::removeInstruction);
+        validAddresses.forEach(address -> {
+            Utils.print("DeadAssignment: " + manipulator.getOp(address));
+            manipulator.removeInstruction(address);
+        });
         return validAddresses.size();
     }
 

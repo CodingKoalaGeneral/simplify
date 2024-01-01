@@ -47,7 +47,10 @@ public class DeadFunctionResult implements Optimization {
             // Result may not be used, but assignments *are* used
             return assigned.isEmpty() || !isAnyRegisterUsed(address, assigned, manipulator);
         }).sorted(Comparator.reverseOrder()).toList();
-        validAddresses.forEach(manipulator::removeInstruction);
+        validAddresses.forEach(address -> {
+            Utils.print("DeadFunctionResult: " + manipulator.getOp(address));
+            manipulator.removeInstruction(address);
+        });
         return validAddresses.size();
     }
 

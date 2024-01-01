@@ -3,8 +3,9 @@ package xyz.wztong.optimization;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionGraph;
 import xyz.wztong.optimization.impl.ConstantPropagation;
+import xyz.wztong.optimization.impl.DeadAssignment;
 import xyz.wztong.optimization.impl.DeadFunctionResult;
-import xyz.wztong.optimization.impl.NopInstruction;
+import xyz.wztong.optimization.impl.UselessBranch;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -17,8 +18,10 @@ public class Optimizer {
 
     static {
         optimizations.add(new ConstantPropagation());
-        optimizations.add(new NopInstruction());
+        optimizations.add(new DeadAssignment());
         optimizations.add(new DeadFunctionResult());
+//        optimizations.add(new NopInstruction());
+        optimizations.add(new UselessBranch());
     }
 
     public static int optimize(ExecutionGraph graph) {
@@ -38,17 +41,18 @@ public class Optimizer {
         do {
             changes = 0;
             for (Optimization optimization : optimizations) {
-                changes += optimization.perform(manipulator);
+                var newChange = optimization.perform(manipulator);
+                changes += newChange;
+                if (newChange != 0) {
+                    vm.updateInstructionGraph(method);
+                }
             }
             pass++;
             totalChanges += changes;
         } while (changes != 0 && pass < maxPass);
         System.out.println("Simplifying(" + totalChanges + "): " + method);
-        if (totalChanges != 0) {
-            vm.updateInstructionGraph(method);
-        }
         // TODO: Unreflect
-        return 0;
+        return totalChanges;
     }
 
 }
