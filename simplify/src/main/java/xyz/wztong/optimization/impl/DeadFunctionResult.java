@@ -11,7 +11,6 @@ import xyz.wztong.optimization.Optimization;
 import java.util.*;
 import java.util.stream.IntStream;
 
-// TODO
 public class DeadFunctionResult implements Optimization {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
