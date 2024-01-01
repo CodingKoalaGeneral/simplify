@@ -64,3 +64,5 @@ demoapp/doc
 
 # MacOS
 .DS_Store
+
+/simplify/src/main/resources/wztong/
