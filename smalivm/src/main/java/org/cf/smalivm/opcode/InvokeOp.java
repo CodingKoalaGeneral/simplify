@@ -536,7 +536,11 @@ public class InvokeOp extends ExecutionContextOp {
         if (virtualReference instanceof UninitializedInstance) {
             UninitializedInstance instance = (UninitializedInstance) virtualReference;
             referenceType = instance.getType();
-        } else {
+        } else if (virtualReference instanceof SelfDefinedInstance) {
+            String targetType = ((SelfDefinedInstance) virtualReference).getInternalType();
+            referenceType = classManager.getVirtualType(targetType);
+        }
+        else{
             String targetType = ClassNameUtils.toInternal(virtualReference.getClass());
             referenceType = classManager.getVirtualType(targetType);
         }

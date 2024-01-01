@@ -1,11 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Main" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="xyz.wztong.Main" />
+  <configuration default="false" name="SimplifyMain" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.cf.simplify.Main" />
     <module name="DalvikDeObf.simplify.main" />
+    <option name="PROGRAM_PARAMETERS" value="&quot;C:\\Users\\WZTong\\Downloads\\IdeaProjectOffline\\DalvikDeObf\\simplify\\src\\main\\resources\\wztong\\CardGenerator\\Original\\disassemble&quot;" />
     <option name="VM_PARAMETERS" value="--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=jdk.unsupported/sun.misc=ALL-UNNAMED --add-opens=java.base/jdk.internal.misc=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --illegal-access=permit" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="xyz.wztong.optimization.impl.*" />
+        <option name="PATTERN" value="org.cf.simplify.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>
