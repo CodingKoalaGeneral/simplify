@@ -5,48 +5,43 @@ import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.opcode.APutOp;
 import org.cf.smalivm.opcode.InvokeOp;
+import org.cf.smalivm.opcode.Op;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.*;
 import java.util.stream.IntStream;
 
-public class DeadFunctionResult implements Optimization {
+// TODO
+public class DeadAssignment implements Optimization {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddresses = IntStream.of(manipulator.getAddresses()).boxed().filter(address -> {
             if (!manipulator.wasAddressReached(address)) {
                 return false;
             }
-            InvokeOp op;
-            if (!(manipulator.getOp(address) instanceof InvokeOp invokeOp)) {
-                return false;
-            } else {
-                op = invokeOp;
-            }
-            var instruction = manipulator.getInstruction(address);
-            if (instruction == null) {
+            var mState = manipulator.getNodePile(address).get(0).getContext().getMethodState();
+            Set<Integer> assigned = getNormalRegistersAssigned(mState);
+            if (assigned.isEmpty()) {
+                // Has no assignments at all
                 return false;
             }
-            String returnType = op.getReturnType();
-            if ("V".equals(returnType)) {
+            Op op = manipulator.getOp(address);
+            if (op == null) {
                 return false;
             }
             if (op.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
                 return false;
             }
-            var nextInstruction = manipulator.getInstruction(address + instruction.getCodeUnits());
-            if (nextInstruction == null) {
-                return false;
+            if (op instanceof InvokeOp) {
+                String returnType = ((InvokeOp) op).getReturnType();
+                if (!"V".equals(returnType)) {
+                    // Handled by dead result
+                    return false;
+                }
             }
-            if (nextInstruction.getOpcode().name.startsWith("move-result")) {
-                return false;
-            }
-            var mState = manipulator.getNodePile(address).get(0).getContext().getMethodState();
-            var assigned = getNormalRegistersAssigned(mState);
-            // Result may not be used, but assignments *are* used
-            return assigned.isEmpty() || !isAnyRegisterUsed(address, assigned, manipulator);
-        }).sorted(Comparator.reverseOrder()).toList();
+            return !isAnyRegisterUsed(address, assigned, manipulator);
+        }).sorted(Collections.reverseOrder()).toList();
         validAddresses.forEach(manipulator::removeInstruction);
         return validAddresses.size();
     }
