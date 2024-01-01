@@ -31,7 +31,7 @@ public class ConstantPropagation implements Optimization {
             }
             return ConstantBuilder.canConstantizeType(consensus.isPrimitive() ? consensus.getType() : consensus.getValueType());
         }).sorted(Collections.reverseOrder()).toList();
-        for (int address : validAddresses) {
+        validAddresses.forEach(address -> {
             var original = manipulator.getInstruction(address);
             var constInstruction = ConstantBuilder.buildConstant(address, manipulator);
             assert original != null;
@@ -40,7 +40,7 @@ public class ConstantPropagation implements Optimization {
             } else {
                 manipulator.replaceInstruction(address, constInstruction);
             }
-        }
+        });
         return validAddresses.size();
     }
 }
