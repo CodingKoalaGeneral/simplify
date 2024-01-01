@@ -26,6 +26,20 @@ public class Utils {
         addMethod("Landroid/app/Activity;->getApplication()Landroid/app/Application;");
     }
 
+    public static void print(String str) {
+        System.err.println("=> " + str);
+        System.err.flush();
+        threadSleep(100);
+    }
+
+    public static void threadSleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static String getCallingEmulateClassInternal() {
         return ClassNameUtils.sourceToInternal(getCallingEmulateClass());
     }
