@@ -1,22 +1,28 @@
 package xyz.wztong;
 
+import org.cf.smalivm.SideEffect;
+import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.emulate.EmulatedMethod;
 import org.cf.smalivm.emulate.MethodEmulator;
 import org.cf.util.ClassNameUtils;
+import org.jf.dexlib2.writer.io.FileDataStore;
 
 import java.io.File;
+import java.io.IOException;
 
 public class Utils {
     public static final String BASE_EMULATE_PACKAGE = "xyz.wztong.emulate";
     public static final String BASE_TYPE_PACKAGE = "xyz.wztong.type";
+    public static final SideEffect.Level MAX_SIDE_EFFECT_LEVEL = SideEffect.Level.NONE;
 
     static {
         addMethod("Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V");
         addMethod("Landroid/app/Activity;->setContentView(I)V");
         addMethod("Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V");
         addMethod("Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;");
+        addMethod("Landroid/widget/Toast;->show()V");
         addMethod("Landroid/app/Activity;->getApplication()Landroid/app/Application;");
     }
 
@@ -54,6 +60,11 @@ public class Utils {
         }
         System.err.println(statement);
     }
+
+    public static void disassembleDex(String input, String output) {
+        disassembleDex(new File(input), new File(output));
+    }
+
     public static void disassembleDex(File input, File output) {
         org.jf.baksmali.Main.main(new String[]{"disassemble", "--use-locals", "--sequential-labels", "--code-offsets", input.getAbsolutePath(), "--output", output.toString()});
     }
@@ -94,5 +105,13 @@ public class Utils {
 
     public static HeapItem makeHeapItem(Object obj) {
         return new HeapItem(obj, ClassNameUtils.toInternal(obj.getClass()));
+    }
+
+    public static void writeDex(VirtualMachine vm, String path) {
+        try {
+            vm.getClassManager().getDexBuilder().writeTo(new FileDataStore(new File(path)));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
