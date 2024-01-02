@@ -62,13 +62,10 @@ public class Unreachable implements Optimization {
                     return false;
                 }
                 var nextOp = nextInstruction.getOpcode();
-                if (nextOp == Opcode.ARRAY_PAYLOAD) {
-                    // Necessary nop padding
-                    return false;
-                }
+                // Necessary nop padding
+                return nextOp != Opcode.ARRAY_PAYLOAD;
             }
-            // These are handled specifically by isUselessBranch
-            return !(op instanceof GotoOp);
+            return true;
         });
         validAddresses.forEach(address -> {
             Utils.print("Unreachable: " + manipulator.getOp(address));
