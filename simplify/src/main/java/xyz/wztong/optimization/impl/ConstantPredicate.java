@@ -6,7 +6,6 @@ import org.cf.smalivm.opcode.IfOp;
 import org.cf.util.Utils;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
-import org.jf.dexlib2.builder.MethodLocation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10x;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.optimization.Optimization;
@@ -61,6 +60,7 @@ public class ConstantPredicate implements Optimization {
                 cmp = lhs == rhs ? 0 : 1;
             }
             var isTrue = isTrue(ifOp, cmp);
+            xyz.wztong.Utils.print("ConstantPredicate: " + isTrue + "(" + lhs + "," + rhs + ") <= " + ifOp);
             if (isTrue) {
                 var targetInstruction = (BuilderOffsetInstruction) manipulator.getInstruction(address);
                 if (targetInstruction == null) {
@@ -80,16 +80,6 @@ public class ConstantPredicate implements Optimization {
             var fRegister1 = IfOp.class.getDeclaredField("register1");
             fRegister1.setAccessible(true);
             return (int) fRegister1.get(ifOp);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new IllegalStateException("Let me get register1!", e);
-        }
-    }
-
-    private static MethodLocation getTarget(IfOp ifOp) {
-        try {
-            var fTarget = IfOp.class.getDeclaredField("target");
-            fTarget.setAccessible(true);
-            return (MethodLocation) fTarget.get(ifOp);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new IllegalStateException("Let me get register1!", e);
         }
