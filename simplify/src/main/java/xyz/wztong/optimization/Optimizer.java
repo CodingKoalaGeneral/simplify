@@ -42,13 +42,13 @@ public class Optimizer {
             for (Optimization optimization : optimizations) {
                 var newChange = optimization.perform(manipulator);
                 changes += newChange;
-                if (newChange != 0) {
-                    vm.updateInstructionGraph(method);
-                }
             }
             pass++;
             totalChanges += changes;
         } while (changes != 0 && pass < maxPass);
+        if (totalChanges != 0) {
+            vm.updateInstructionGraph(method);
+        }
         System.out.println("Simplifying(" + totalChanges + "): " + method);
         // TODO: Unreflect
         return totalChanges;
