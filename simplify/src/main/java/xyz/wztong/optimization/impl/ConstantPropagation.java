@@ -7,14 +7,11 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.ConstantBuilder;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.Collections;
-import java.util.stream.IntStream;
-
 public class ConstantPropagation implements Optimization {
 
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var validAddresses = IntStream.of(manipulator.getAddresses()).boxed().filter(address -> {
+        var validAddresses = getValidAddresses(manipulator, address -> {
             if (!manipulator.wasAddressReached(address)) {
                 return false;
             }
@@ -31,7 +28,7 @@ public class ConstantPropagation implements Optimization {
                 return false;
             }
             return ConstantBuilder.canConstantizeType(consensus.isPrimitive() ? consensus.getType() : consensus.getValueType());
-        }).sorted(Collections.reverseOrder()).toList();
+        });
         validAddresses.forEach(address -> {
             Utils.print("ConstantPropagation: " + manipulator.getOp(address));
             var original = manipulator.getInstruction(address);

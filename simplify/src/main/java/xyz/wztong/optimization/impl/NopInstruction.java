@@ -5,13 +5,10 @@ import org.jf.dexlib2.Opcode;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.Comparator;
-import java.util.stream.IntStream;
-
 public class NopInstruction implements Optimization {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var validAddresses = IntStream.of(manipulator.getAddresses()).boxed().filter(address -> {
+        var validAddresses = getValidAddresses(manipulator, address -> {
             var instruction = manipulator.getInstruction(address);
             if (instruction == null) return false;
             var opcode = instruction.getOpcode();
@@ -25,7 +22,7 @@ public class NopInstruction implements Optimization {
                 }
             }
             return Opcode.NOP.equals(opcode);
-        }).sorted(Comparator.reverseOrder()).toList();
+        });
         validAddresses.forEach(address -> {
             Utils.print("NopInstruction: " + manipulator.getOp(address));
             manipulator.removeInstruction(address);

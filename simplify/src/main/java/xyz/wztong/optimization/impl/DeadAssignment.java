@@ -9,14 +9,16 @@ import org.cf.smalivm.opcode.Op;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.*;
-import java.util.stream.IntStream;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 // TODO
 public class DeadAssignment implements Optimization {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var validAddresses = IntStream.of(manipulator.getAddresses()).boxed().filter(address -> {
+        var validAddresses = getValidAddresses(manipulator, address -> {
             if (!manipulator.wasAddressReached(address)) {
                 return false;
             }
@@ -41,7 +43,7 @@ public class DeadAssignment implements Optimization {
                 }
             }
             return !isAnyRegisterUsed(address, assigned, manipulator);
-        }).sorted(Collections.reverseOrder()).toList();
+        });
         validAddresses.forEach(address -> {
             Utils.print("DeadAssignment: " + manipulator.getOp(address));
             manipulator.removeInstruction(address);

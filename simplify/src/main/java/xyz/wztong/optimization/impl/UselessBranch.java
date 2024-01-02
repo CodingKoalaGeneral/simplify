@@ -6,13 +6,10 @@ import org.jf.dexlib2.iface.instruction.OffsetInstruction;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.Comparator;
-import java.util.stream.IntStream;
-
 public class UselessBranch implements Optimization {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var validAddresses = IntStream.of(manipulator.getAddresses()).boxed().filter(address -> {
+        var validAddresses = getValidAddresses(manipulator, address -> {
             var op = manipulator.getOp(address);
             if (!(op instanceof GotoOp)) {
                 return false;
@@ -23,7 +20,7 @@ public class UselessBranch implements Optimization {
                 return false;
             }
             return instruction.getCodeOffset() == instruction.getCodeUnits();
-        }).sorted(Comparator.reverseOrder()).toList();
+        });
         validAddresses.forEach(address -> {
             Utils.print("UselessBranch: " + manipulator.getOp(address));
             manipulator.removeInstruction(address);

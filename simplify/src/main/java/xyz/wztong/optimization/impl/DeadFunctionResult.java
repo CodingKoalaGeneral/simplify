@@ -8,13 +8,15 @@ import org.cf.smalivm.opcode.InvokeOp;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.*;
-import java.util.stream.IntStream;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class DeadFunctionResult implements Optimization {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var validAddresses = IntStream.of(manipulator.getAddresses()).boxed().filter(address -> {
+        var validAddresses = getValidAddresses(manipulator, address -> {
             if (!manipulator.wasAddressReached(address)) {
                 return false;
             }
@@ -46,7 +48,7 @@ public class DeadFunctionResult implements Optimization {
             var assigned = getNormalRegistersAssigned(mState);
             // Result may not be used, but assignments *are* used
             return assigned.isEmpty() || !isAnyRegisterUsed(address, assigned, manipulator);
-        }).sorted(Comparator.reverseOrder()).toList();
+        });
         validAddresses.forEach(address -> {
             Utils.print("DeadFunctionResult: " + manipulator.getOp(address));
             manipulator.removeInstruction(address);
