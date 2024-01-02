@@ -311,7 +311,7 @@ public class ExecutionGraph implements Iterable<ExecutionNode> {
 
     public SideEffect.Level getHighestSideEffectLevel() {
         SideEffect.Level result = getHighestMethodSideEffectLevel();
-        if (result == SideEffect.Level.STRONG || method.isStatic()) {
+        if (result == SideEffect.Level.STRONG || method.isStatic() || vm.getConfiguration().isSafe(method.getSignature())) {
             return result;
         }
 
