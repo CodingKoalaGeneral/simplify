@@ -16,9 +16,12 @@ public class NopInstruction implements Optimization {
             var nextLocation = manipulator.getLocation(nextAddress);
             if (nextLocation != null) {
                 var nextInstruction = nextLocation.getInstruction();
-                if (nextInstruction != null && nextInstruction.getOpcode().equals(Opcode.ARRAY_PAYLOAD)) {
-                    // Necessary nop padding
-                    return false;
+                if (nextInstruction != null) {
+                    var nextOpcode = nextInstruction.getOpcode();
+                    if (nextOpcode.equals(Opcode.ARRAY_PAYLOAD) || nextOpcode.equals(Opcode.PACKED_SWITCH_PAYLOAD) || nextOpcode.equals(Opcode.SPARSE_SWITCH_PAYLOAD)) {
+                        // Necessary nop padding
+                        return false;
+                    }
                 }
             }
             return Opcode.NOP.equals(opcode);

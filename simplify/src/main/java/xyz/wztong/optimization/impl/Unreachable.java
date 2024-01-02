@@ -61,9 +61,9 @@ public class Unreachable implements Optimization {
                 if (nextInstruction == null) {
                     return false;
                 }
-                var nextOp = nextInstruction.getOpcode();
+                var nextOpcode = nextInstruction.getOpcode();
                 // Necessary nop padding
-                return nextOp != Opcode.ARRAY_PAYLOAD;
+                return !nextOpcode.equals(Opcode.ARRAY_PAYLOAD) && !nextOpcode.equals(Opcode.PACKED_SWITCH_PAYLOAD) && !nextOpcode.equals(Opcode.SPARSE_SWITCH_PAYLOAD);
             }
             return true;
         });
