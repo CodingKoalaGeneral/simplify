@@ -1,6 +1,7 @@
 package xyz.wztong.optimization.impl;
 
 import org.cf.simplify.ExecutionGraphManipulator;
+import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.opcode.APutOp;
@@ -34,14 +35,18 @@ public class DeadFunctionResult implements Optimization {
             if ("V".equals(returnType)) {
                 return false;
             }
-            if (op.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
-                return false;
-            }
             var nextInstruction = manipulator.getInstruction(address + instruction.getCodeUnits());
             if (nextInstruction == null) {
                 return false;
             }
             if (nextInstruction.getOpcode().name.startsWith("move-result")) {
+                return false;
+            }
+            // If a function has no side effect and the result is ignored, we can delete it (for safety, add static limit)
+            if (op.getSideEffectLevel().getValue() == SideEffect.Level.NONE.getValue() && op.getMethod().isStatic()) {
+                return true;
+            }
+            if (op.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
                 return false;
             }
             var mState = manipulator.getNodePile(address).get(0).getContext().getMethodState();
