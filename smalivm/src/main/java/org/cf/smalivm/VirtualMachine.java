@@ -219,12 +219,17 @@ public class VirtualMachine {
      */
     private void collapseMultiverse(VirtualMethod calledMethod, ExecutionGraph graph, ExecutionContext callerContext, int[] parameterRegisters) {
         int[] terminatingAddresses = graph.getConnectedTerminatingAddresses();
+        MethodState callerState = callerContext.getMethodState();
         if (parameterRegisters != null) {
             MethodState callerMethodState = callerContext.getMethodState();
             List<String> parameterTypes = calledMethod.getParameterTypeNames();
             int parameterRegister = graph.getNodePile(0).get(0).getContext().getMethodState().getParameterStart();
             for (int parameterIndex = 0; parameterIndex < parameterTypes.size(); parameterIndex++) {
-                String type = parameterTypes.get(parameterIndex);
+                String type;
+                HeapItem actualCallerItem = callerState.peekRegister(parameterIndex);
+                if (actualCallerItem == null || (type = actualCallerItem.getType()) == null) {
+                    type = parameterTypes.get(parameterIndex);
+                }
                 if (configuration.isMutable(type)) {
                     HeapItem item = getMutableParameterConsensus(terminatingAddresses, graph, parameterRegister);
                     int register = parameterRegisters[parameterIndex];
