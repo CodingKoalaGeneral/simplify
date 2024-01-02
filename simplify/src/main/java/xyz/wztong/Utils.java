@@ -11,11 +11,14 @@ import org.jf.dexlib2.writer.io.FileDataStore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class Utils {
     public static final String BASE_EMULATE_PACKAGE = "xyz.wztong.emulate";
     public static final String BASE_TYPE_PACKAGE = "xyz.wztong.type";
     public static final SideEffect.Level MAX_SIDE_EFFECT_LEVEL = SideEffect.Level.NONE;
+
+    public static final List<String> DEBUGGING_FUNCTIONS = List.of("Lcom/example/check/b;->c()I");
 
     static {
         addMethod("Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V");
