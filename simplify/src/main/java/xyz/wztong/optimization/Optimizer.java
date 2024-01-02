@@ -2,10 +2,7 @@ package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionGraph;
-import xyz.wztong.optimization.impl.ConstantPropagation;
-import xyz.wztong.optimization.impl.DeadAssignment;
-import xyz.wztong.optimization.impl.DeadFunctionResult;
-import xyz.wztong.optimization.impl.UselessBranch;
+import xyz.wztong.optimization.impl.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -17,6 +14,7 @@ public class Optimizer {
     private static final int DEFAULT_PASS = 5;
 
     static {
+        optimizations.add(new ConstantPredicate());
         optimizations.add(new ConstantPropagation());
         optimizations.add(new DeadAssignment());
         optimizations.add(new DeadFunctionResult());
