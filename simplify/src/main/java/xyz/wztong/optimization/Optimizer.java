@@ -19,6 +19,7 @@ public class Optimizer {
         optimizations.add(new DeadAssignment());
         optimizations.add(new DeadFunctionResult());
 //        optimizations.add(new NopInstruction());
+        optimizations.add(new Unreachable());
         optimizations.add(new UselessBranch());
     }
 
