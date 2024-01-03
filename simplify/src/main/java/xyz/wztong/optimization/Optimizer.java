@@ -25,12 +25,20 @@ public class Optimizer {
         optimizations.add(new UselessBranch());
     }
 
+    public static int optimize(List<Optimization> optimizations, ExecutionGraph graph) {
+        return optimize(optimizations, graph, DEFAULT_PASS);
+    }
+
+    public static int optimize(ExecutionGraph graph, int maxPass) {
+        return optimize(optimizations, graph, maxPass);
+    }
+
     public static int optimize(ExecutionGraph graph) {
-        return optimize(graph, DEFAULT_PASS);
+        return optimize(optimizations, graph, DEFAULT_PASS);
     }
 
     // Return: Re-execute needed count
-    public static int optimize(ExecutionGraph graph, int maxPass) {
+    public static int optimize(List<Optimization> optimizations, ExecutionGraph graph, int maxPass) {
         var vm = graph.getVM();
         var classManager = vm.getClassManager();
         var dexBuilder = classManager.getDexBuilder();
