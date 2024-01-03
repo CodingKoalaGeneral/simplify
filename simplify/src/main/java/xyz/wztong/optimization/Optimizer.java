@@ -12,10 +12,12 @@ public class Optimizer {
 
     private static final List<Optimization> optimizations = new LinkedList<>();
     private static final int DEFAULT_PASS = 5;
+    private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
 
     static {
         optimizations.add(new ConstantPredicate());
         optimizations.add(new ConstantPropagation());
+        optimizations.add(new ConstantSwitch(DEFAULT_SEEK_BACK_LIMIT));
         optimizations.add(new DeadAssignment());
         optimizations.add(new DeadFunctionResult());
         optimizations.add(new NopInstruction());
