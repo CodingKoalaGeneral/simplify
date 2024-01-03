@@ -18,6 +18,7 @@ public class Utils {
     public static final String BASE_TYPE_PACKAGE = "xyz.wztong.type";
     public static final SideEffect.Level MAX_SIDE_EFFECT_LEVEL = SideEffect.Level.NONE;
 
+    @SuppressWarnings("unused")
     public static final List<String> DEBUGGING_FUNCTIONS = List.of("Lcom/example/check/b;->c()I");
 
     static {
