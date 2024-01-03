@@ -19,6 +19,9 @@ public interface Optimization {
     interface ReOptimize extends Optimization {
     }
 
+    interface Refactor extends Optimization {
+    }
+
     int perform(ExecutionGraphManipulator manipulator);
 
     default List<Integer> getValidAddresses(ExecutionGraphManipulator manipulator, Predicate<Integer> filter) {
