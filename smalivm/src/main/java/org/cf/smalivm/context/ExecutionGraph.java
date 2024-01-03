@@ -583,7 +583,7 @@ public class ExecutionGraph implements Iterable<ExecutionNode> {
             Op op = getOp(address);
             sb.append(op.toString());
             if (includeAddress) {
-                sb.append(" # @").append(address);
+                sb.append(" # @").append(Integer.toHexString(address)).append(" (").append(address).append(")");
             }
             sb.append('\n');
         }
