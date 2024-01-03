@@ -8,7 +8,6 @@ import org.jf.dexlib2.builder.BuilderTryBlock;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
