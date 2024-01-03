@@ -5,7 +5,7 @@ import org.jf.dexlib2.Opcode;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-public class NopInstruction implements Optimization {
+public class NopInstruction implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddresses = getValidAddresses(manipulator, address -> {

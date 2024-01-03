@@ -7,7 +7,7 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.ConstantBuilder;
 import xyz.wztong.optimization.Optimization;
 
-public class ConstantPropagation implements Optimization {
+public class ConstantPropagation implements Optimization.ReOptimize {
 
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {

@@ -5,7 +5,8 @@ import org.cf.smalivm.context.ExecutionGraph;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.impl.*;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @SuppressWarnings("UnusedReturnValue")
 public class Optimizer {
@@ -17,7 +18,7 @@ public class Optimizer {
     static {
         addOptimization(new ConstantPredicate());
         addOptimization(new ConstantPropagation());
-//        addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
+        addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
         addOptimization(new DeadAssignment());
         addOptimization(new DeadFunctionResult());
         addOptimization(new NopInstruction());
@@ -44,31 +45,39 @@ public class Optimizer {
     // Return: Re-execute needed count
     public static int optimize(Set<Optimization> optimizations, ExecutionGraph graph, int maxPass) {
         var vm = graph.getVM();
-        var classManager = vm.getClassManager();
-        var dexBuilder = classManager.getDexBuilder();
         var method = graph.getMethod();
-        var manipulator = new ExecutionGraphManipulator(graph, method, vm, dexBuilder);
-        int pass = 0;
-        int totalChanges = 0;
-        int changes;
-        do {
-            changes = 0;
-            for (Optimization optimization : optimizations) {
+        var manipulator = new ExecutionGraphManipulator(graph, method, vm, vm.getClassManager().getDexBuilder());
+        var reOptimizeChange = 0;
+        for (int i = 0; i < maxPass; i++) {
+            for (var optimization : optimizations) {
+                if (!(optimization instanceof Optimization.ReOptimize)) {
+                    continue;
+                }
                 var newChange = optimization.perform(manipulator);
                 if (newChange != 0) {
-                    Utils.print("Optimizer: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
+                    Utils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
                 }
-                changes += newChange;
+                reOptimizeChange += newChange;
             }
-            pass++;
-            totalChanges += changes;
-        } while (changes != 0 && pass < maxPass);
-        if (totalChanges != 0) {
-            vm.updateInstructionGraph(method);
         }
-        Utils.print("Optimizer: Simplified(" + totalChanges + "): " + method);
-        // TODO: Unreflect
-        return totalChanges;
+        if (reOptimizeChange != 0) {
+            vm.updateInstructionGraph(method);
+            Utils.print("Optimizer.ReOptimize: Simplified(" + reOptimizeChange + "): " + method);
+            return reOptimizeChange;
+        }
+        // Re-Execute should just run once, then re-execute
+        for (var optimization : optimizations) {
+            if (!(optimization instanceof Optimization.ReExecute)) {
+                continue;
+            }
+            var newChange = optimization.perform(manipulator);
+            if (newChange != 0) {
+                Utils.print("Optimizer.ReExecute: Simplified(" + newChange + "): " + optimization.getClass().getSimpleName() + " @" + method);
+                vm.updateInstructionGraph(method);
+                return newChange;
+            }
+        }
+        return 0;
     }
 
 }

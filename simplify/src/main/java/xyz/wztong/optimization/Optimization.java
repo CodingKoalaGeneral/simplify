@@ -12,6 +12,12 @@ import java.util.stream.IntStream;
 
 public interface Optimization {
 
+    interface ReExecute extends Optimization {
+    }
+
+    interface ReOptimize extends Optimization {
+    }
+
     int perform(ExecutionGraphManipulator manipulator);
 
     default List<Integer> getValidAddresses(ExecutionGraphManipulator manipulator, Predicate<Integer> filter) {

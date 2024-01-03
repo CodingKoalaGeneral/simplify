@@ -1,17 +1,18 @@
 package xyz.wztong.optimization.impl;
 
 import org.cf.simplify.ExecutionGraphManipulator;
-import org.cf.smalivm.opcode.GotoOp;
 import org.cf.smalivm.opcode.NopOp;
+import org.cf.smalivm.opcode.SwitchPayloadOp;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderTryBlock;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class Unreachable implements Optimization {
+public class Unreachable implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var handlerAddresses = new HashSet<>();
@@ -65,7 +66,7 @@ public class Unreachable implements Optimization {
                 // Necessary nop padding
                 return !nextOpcode.equals(Opcode.ARRAY_PAYLOAD) && !nextOpcode.equals(Opcode.PACKED_SWITCH_PAYLOAD) && !nextOpcode.equals(Opcode.SPARSE_SWITCH_PAYLOAD);
             }
-            return true;
+            return !(op instanceof SwitchPayloadOp);
         });
         validAddresses.forEach(address -> {
             Utils.print("Unreachable: " + manipulator.getOp(address));

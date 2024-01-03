@@ -33,12 +33,16 @@ public class Utils {
     public static void print(String str) {
         System.err.println("=> " + str);
         System.err.flush();
-        threadSleep(100);
+        threadSleep(0);
     }
 
     public static void threadSleep(long millis) {
         try {
-            Thread.sleep(millis);
+            if (millis != 0) {
+                Thread.sleep(millis);
+            } else {
+                Thread.yield();
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

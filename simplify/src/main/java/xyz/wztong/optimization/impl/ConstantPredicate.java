@@ -13,7 +13,7 @@ import xyz.wztong.optimization.Optimization;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ConstantPredicate implements Optimization {
+public class ConstantPredicate implements Optimization.ReOptimize {
 
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {

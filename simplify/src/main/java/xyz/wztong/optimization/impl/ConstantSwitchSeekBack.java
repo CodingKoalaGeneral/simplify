@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ConstantSwitchSeekBack implements Optimization {
+public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
     private final int seekBackLimit;
@@ -134,7 +134,7 @@ public class ConstantSwitchSeekBack implements Optimization {
                 }
             }
         }
-        return 0;
+        return jumpTable.size();
     }
 
     /**

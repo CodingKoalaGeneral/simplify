@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class DeadFunctionResult implements Optimization {
+public class DeadFunctionResult implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddresses = getValidAddresses(manipulator, address -> {

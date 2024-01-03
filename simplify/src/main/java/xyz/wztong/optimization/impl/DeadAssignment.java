@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 // TODO
-public class DeadAssignment implements Optimization {
+public class DeadAssignment implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddresses = getValidAddresses(manipulator, address -> {

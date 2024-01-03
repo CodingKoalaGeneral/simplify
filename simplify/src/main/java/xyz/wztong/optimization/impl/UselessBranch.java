@@ -6,7 +6,7 @@ import org.jf.dexlib2.iface.instruction.OffsetInstruction;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-public class UselessBranch implements Optimization {
+public class UselessBranch implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddresses = getValidAddresses(manipulator, address -> {
