@@ -151,7 +151,7 @@ public class ConstantSwitch implements Optimization {
             fTargetKeyToOffset.setAccessible(true);
             return (TIntIntMap) fTargetKeyToOffset.get(switchPayloadOp);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("SwitchPayloadOp without targetKeyToOffset field?", e);
         }
     }
 
@@ -161,7 +161,7 @@ public class ConstantSwitch implements Optimization {
             fMoveType.setAccessible(true);
             return ((Enum<?>) fMoveType.get(moveOp)).name();
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("MoveOp without moveType field?", e);
         }
     }
 }
