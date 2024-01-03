@@ -2,6 +2,7 @@ package xyz.wztong.optimization.impl;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.opcode.NopOp;
+import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderTryBlock;
@@ -65,12 +66,28 @@ public class Unreachable implements Optimization.ReOptimize {
                 // Necessary nop padding
                 return !nextOpcode.equals(Opcode.ARRAY_PAYLOAD) && !nextOpcode.equals(Opcode.PACKED_SWITCH_PAYLOAD) && !nextOpcode.equals(Opcode.SPARSE_SWITCH_PAYLOAD);
             }
-            return !(op instanceof SwitchPayloadOp);
+            return true;
         });
+        var implementation = manipulator.getMethod().getImplementation();
         validAddresses.forEach(address -> {
-            Utils.print("Unreachable: " + manipulator.getOp(address));
-            manipulator.removeInstruction(address);
+            var op = manipulator.getOp(address);
+            Utils.print("Unreachable: " + op);
+            if (op instanceof SwitchOp switchOp) {
+                var payloadAddress = switchOp.getChildren()[0].getCodeAddress();
+                // TODO: Maybe a payload will share between switches?
+                var switchPayloadOp = manipulator.getOp(payloadAddress);
+                if (!(switchPayloadOp instanceof SwitchPayloadOp)) {
+                    throw new IllegalStateException("Target of a switch op is not a payload op?");
+                }
+                implementation.removeInstruction(manipulator.getLocation(Math.max(address, payloadAddress)).getIndex());
+                implementation.removeInstruction(manipulator.getLocation(Math.min(address, payloadAddress)).getIndex());
+                manipulatorRebuildGraph(manipulator);
+            } else if (!(op instanceof SwitchPayloadOp)) {
+                manipulator.removeInstruction(address);
+            }
+            // Do nothing with standalone SwitchPayloadOp
         });
         return validAddresses.size();
     }
+
 }
