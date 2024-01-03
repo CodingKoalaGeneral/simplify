@@ -11,7 +11,7 @@ import java.util.Set;
 @SuppressWarnings("UnusedReturnValue")
 public class Optimizer {
 
-    private static final Set<Optimization> optimizations = new HashSet<>();
+    private static final Set<Optimization> DEFAULT_OPTIMIZATIONS = new HashSet<>();
     private static final int MAX_OPTIMIZE_PASS = 5;
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
 
@@ -27,11 +27,11 @@ public class Optimizer {
     }
 
     public static boolean addOptimization(Optimization e) {
-        return optimizations.add(e);
+        return DEFAULT_OPTIMIZATIONS.add(e);
     }
 
     public static int optimize(ExecutionGraph graph) {
-        return optimize(optimizations, graph);
+        return optimize(DEFAULT_OPTIMIZATIONS, graph);
     }
 
     // Return: Re-execute needed count
