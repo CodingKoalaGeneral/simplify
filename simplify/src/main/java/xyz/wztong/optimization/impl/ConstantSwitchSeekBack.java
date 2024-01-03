@@ -102,22 +102,38 @@ public class ConstantSwitchSeekBack implements Optimization {
                 jumpTable.add(Map.entry(from, targetAddress));
             }
         }
+        // Adding instructions from bottom
         jumpTable.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
         var impl = manipulator.getMethod().getImplementation();
-        jumpTable.stream().map(table -> Map.entry(table.getKey(), impl.newLabelForAddress(table.getValue()))).forEach(table -> {
+        for (int i = 0; i < jumpTable.size(); i++) {
+            var table = jumpTable.get(i);
             var from = table.getKey();
-            var label = table.getValue();
+            var to = table.getValue();
+            var toLabel = impl.newLabelForAddress(to);
             BuilderInstruction gotoInstruction;
-            var offsetAbs = Math.abs(label.getCodeAddress() - from);
+            var offsetAbs = Math.abs(to - from);
             if (offsetAbs < 0x7f) {
-                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, label);
+                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
             } else if (offsetAbs < 0x7fff) {
-                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, label);
+                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
             } else {
-                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, label);
+                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
             }
+            Utils.print("ConstantSwitch: " + manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
             manipulator.addInstruction(from, gotoInstruction);
-        });
+            // After inserting an instruction, all offsets need to be re-caculated
+            var insertLength = gotoInstruction.getCodeUnits();
+            for (int j = 0; j < jumpTable.size(); j++) {
+                var impactTable = jumpTable.get(j);
+                // From is always smaller than modifing instruction's position
+                var impactFrom = impactTable.getKey();
+                var impactTo = impactTable.getValue();
+                if (impactTo > from) {
+                    var newTo = impactTo + insertLength;
+                    jumpTable.set(j, Map.entry(impactFrom, newTo));
+                }
+            }
+        }
         return 0;
     }
 
