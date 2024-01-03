@@ -2,30 +2,34 @@ package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionGraph;
+import xyz.wztong.Utils;
 import xyz.wztong.optimization.impl.*;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 @SuppressWarnings("UnusedReturnValue")
 public class Optimizer {
 
-    private static final List<Optimization> optimizations = new LinkedList<>();
+    private static final Set<Optimization> optimizations = new HashSet<>();
     private static final int DEFAULT_PASS = 5;
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
 
     static {
-        optimizations.add(new ConstantPredicate());
-        optimizations.add(new ConstantPropagation());
-        optimizations.add(new ConstantSwitch(DEFAULT_SEEK_BACK_LIMIT));
-        optimizations.add(new DeadAssignment());
-        optimizations.add(new DeadFunctionResult());
-        optimizations.add(new NopInstruction());
-        optimizations.add(new Unreachable());
-        optimizations.add(new UselessBranch());
+        addOptimization(new ConstantPredicate());
+        addOptimization(new ConstantPropagation());
+//        addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
+        addOptimization(new DeadAssignment());
+        addOptimization(new DeadFunctionResult());
+        addOptimization(new NopInstruction());
+        addOptimization(new Unreachable());
+        addOptimization(new UselessBranch());
     }
 
-    public static int optimize(List<Optimization> optimizations, ExecutionGraph graph) {
+    public static boolean addOptimization(Optimization e) {
+        return optimizations.add(e);
+    }
+
+    public static int optimize(Set<Optimization> optimizations, ExecutionGraph graph) {
         return optimize(optimizations, graph, DEFAULT_PASS);
     }
 
@@ -38,7 +42,7 @@ public class Optimizer {
     }
 
     // Return: Re-execute needed count
-    public static int optimize(List<Optimization> optimizations, ExecutionGraph graph, int maxPass) {
+    public static int optimize(Set<Optimization> optimizations, ExecutionGraph graph, int maxPass) {
         var vm = graph.getVM();
         var classManager = vm.getClassManager();
         var dexBuilder = classManager.getDexBuilder();
@@ -51,6 +55,9 @@ public class Optimizer {
             changes = 0;
             for (Optimization optimization : optimizations) {
                 var newChange = optimization.perform(manipulator);
+                if (newChange != 0) {
+                    Utils.print("Optimizer: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
+                }
                 changes += newChange;
             }
             pass++;
@@ -59,7 +66,7 @@ public class Optimizer {
         if (totalChanges != 0) {
             vm.updateInstructionGraph(method);
         }
-        System.out.println("Simplifying(" + totalChanges + "): " + method);
+        Utils.print("Optimizer: Simplified(" + totalChanges + "): " + method);
         // TODO: Unreflect
         return totalChanges;
     }
