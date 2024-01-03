@@ -2,6 +2,7 @@ package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +37,16 @@ public interface Optimization {
             return;
         }
         IntStream.of(addresses).boxed().filter(filter).map(mapper).sorted(Collections.reverseOrder()).forEach(consumer);
+    }
+
+    default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {
+        try {
+            var mRebuildGraph = ExecutionGraphManipulator.class.getDeclaredMethod("rebuildGraph");
+            mRebuildGraph.setAccessible(true);
+            mRebuildGraph.invoke(manipulator);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            throw new IllegalStateException("Why I cannot rebuild graph?", e);
+        }
     }
 
 }
