@@ -7,10 +7,16 @@ import org.cf.smalivm.opcode.InvokeOp;
 import org.cf.smalivm.opcode.MoveOp;
 import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
+import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -128,11 +134,40 @@ public class ConstantSwitch implements Optimization {
                 }
                 var switchTargets = validNodesWithSwitchTarget.getValue();
                 var from = currentNode.getAddress();
-                var to = switchAddress + switchTargets.getValue();
+                var switchOffset = switchTargets.getValue();
+                var to = switchAddress + switchOffset;
+                var toLocation = manipulator.getLocation(to);
+                if (toLocation == null) {
+                    Utils.print("ConstantSwitch: " + currentNode.getOp() + "@" + currentNode.getAddress() + " goes to an invalid address (@" + Integer.toHexString(to) + "=@" + Integer.toHexString(switchAddress) + "+@" + Integer.toHexString(switchOffset) + ")");
+                    continue;
+                }
+                var toOp = manipulator.getOp(to);
+                if (toOp == null) {
+                    Utils.print("ConstantSwitch: " + currentNode.getOp() + "@" + currentNode.getAddress() + " goes to an invalid address (@" + Integer.toHexString(to) + "=@" + Integer.toHexString(switchAddress) + "+@" + Integer.toHexString(switchOffset) + ")");
+                    continue;
+                }
+                Utils.print("ConstantSwitch: " + currentNode.getOp() + "@" + currentNode.getAddress() + " => " + toOp + "@" + Integer.toHexString(to));
                 jumpTable.add(Map.entry(from, to));
             }
         });
-        return 0;
+        jumpTable.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
+        var impl = manipulator.getMethod().getImplementation();
+        jumpTable.forEach(table -> {
+            var from = table.getKey();
+            var to = table.getValue();
+            var toLabel = impl.newLabelForAddress(to);
+            BuilderInstruction gotoInstruction;
+            var offsetAbs = Math.abs(to - from);
+            if (offsetAbs < 0x7f) {
+                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
+            } else if (offsetAbs < 0x7fff) {
+                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
+            } else {
+                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
+            }
+            manipulator.addInstruction(from, gotoInstruction);
+        });
+        return jumpTable.size();
     }
 
     private static int getRegister(SwitchOp switchOp) {
