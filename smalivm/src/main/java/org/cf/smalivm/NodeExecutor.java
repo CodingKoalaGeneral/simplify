@@ -72,8 +72,8 @@ public class NodeExecutor {
         if (log.isDebugEnabled()) {
             Op op = node.getOp();
             log.debug("Handling @{}: {}", op.getAddress(), op);
-            if (log.isDebugEnabled()) {
-                log.debug("Context before:\n{}", node.getContext().toString(false));
+            if (log.isTraceEnabled()) {
+                log.trace("Context before:\n{}", node.getContext().toString(false));
             }
         }
 
