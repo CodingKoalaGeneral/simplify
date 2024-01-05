@@ -11,6 +11,7 @@ import java.util.Set;
 @SuppressWarnings("UnusedReturnValue")
 public class Optimizer {
 
+    private static final Set<Class<? extends Optimization>> DEFAULT_OPTIMIZATIONS_SET = new HashSet<>();
     private static final Set<Optimization> DEFAULT_OPTIMIZATIONS = new HashSet<>();
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
     public static final int OPTIMIZER_OPTIMIZED = -1;
@@ -35,6 +36,9 @@ public class Optimizer {
     }
 
     public static boolean addOptimization(Optimization e) {
+        if(DEFAULT_OPTIMIZATIONS_SET.contains(e.getClass())){
+            return false;
+        }
         return DEFAULT_OPTIMIZATIONS.add(e);
     }
 
