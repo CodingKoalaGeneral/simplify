@@ -10,6 +10,7 @@ import xyz.wztong.optimization.Optimization;
 
 import java.util.ArrayList;
 
+@SuppressWarnings("DuplicatedCode")
 public class UnreachableSwitchBranch implements Optimization.ReExecute {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
