@@ -22,7 +22,6 @@ import xyz.wztong.optimization.Optimizer;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,14 @@ public class Utils {
     public static final String BASE_TYPE_PACKAGE = "xyz.wztong.type";
     public static final SideEffect.Level MAX_SIDE_EFFECT_LEVEL = SideEffect.Level.NONE;
 
-    public static String simplifyMethod(String path, String method) throws IOException, VirtualMachineException {
+    public static String simplifyMethodWithDex(String path, String method) throws IOException, VirtualMachineException {
+        var graph = simplifyMethod(path, method);
+        var smali = graph.toSmali(true);
+        writeDex(graph.getVM(), path + "." + Integer.toHexString(smali.hashCode()) + ".dex");
+        return smali;
+    }
+
+    public static ExecutionGraph simplifyMethod(String path, String method) throws IOException, VirtualMachineException {
         var file = new File(path);
         if (!file.isFile()) {
             throw new IOException("Not a file");
@@ -42,9 +48,7 @@ public class Utils {
         do {
             graph = vm.execute(method);
         } while (Optimizer.optimize(graph) != Optimizer.OPTIMIZER_OPTIMIZED);
-        var smali = graph.toSmali(true);
-        writeDex(vm, path + "." + Integer.toHexString(smali.hashCode()) + ".dex");
-        return smali;
+        return graph;
     }
 
     @SuppressWarnings("unused")
