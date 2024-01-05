@@ -1,6 +1,7 @@
 package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
+import xyz.wztong.Utils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -31,6 +32,14 @@ public interface Optimization {
             return new ArrayList<>();
         }
         return IntStream.of(addresses).boxed().filter(filter).sorted(Collections.reverseOrder()).toList();
+    }
+
+    default void print(String msg) {
+        Utils.print(this.getClass().getSimpleName() + ": " + msg);
+    }
+
+    default void print(Object obj) {
+        print(String.valueOf(obj));
     }
 
     default <T> void processValidAddresses(ExecutionGraphManipulator manipulator, Predicate<Integer> filter, Function<Integer, T> mapper, Consumer<T> consumer) {

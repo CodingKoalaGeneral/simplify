@@ -6,7 +6,6 @@ import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
 import org.jf.dexlib2.builder.SwitchLabelElement;
 import org.jf.dexlib2.builder.instruction.BuilderSparseSwitchPayload;
-import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.ArrayList;
@@ -66,7 +65,7 @@ public class UnreachableSwitchBranch implements Optimization.ReOptimize {
             });
             var newSwitchPayloadInstruction = new BuilderSparseSwitchPayload(newSwitchPayloadElement);
             replaced += keyToRemove.size();
-            Utils.print("UnreachableSwitchBranch: " + switchPayloadOp + " " + keyToRemove);
+            print(switchPayloadOp + " " + keyToRemove);
             manipulator.getMethod().getImplementation().replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
             manipulatorRebuildGraph(manipulator);
         }

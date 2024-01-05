@@ -45,7 +45,7 @@ public class DeadAssignment implements Optimization.ReOptimize {
             return !isAnyRegisterUsed(address, assigned, manipulator);
         });
         validAddresses.forEach(address -> {
-            Utils.print("DeadAssignment: " + manipulator.getOp(address));
+            print(manipulator.getOp(address));
             manipulator.removeInstruction(address);
         });
         return validAddresses.size();

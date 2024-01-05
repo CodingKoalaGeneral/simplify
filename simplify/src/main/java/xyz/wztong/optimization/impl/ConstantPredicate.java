@@ -60,7 +60,7 @@ public class ConstantPredicate implements Optimization.ReOptimize {
                 cmp = lhs == rhs ? 0 : 1;
             }
             var isTrue = isTrue(ifOp, cmp);
-            xyz.wztong.Utils.print("ConstantPredicate: " + isTrue + "(" + lhs + "," + rhs + ") <= " + ifOp);
+            print(isTrue + "(" + lhs + "," + rhs + ") <= " + ifOp);
             if (isTrue) {
                 var targetInstruction = (BuilderOffsetInstruction) manipulator.getInstruction(address);
                 if (targetInstruction == null) {

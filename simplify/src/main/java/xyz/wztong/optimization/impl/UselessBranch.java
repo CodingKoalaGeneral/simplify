@@ -3,7 +3,6 @@ package xyz.wztong.optimization.impl;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.opcode.GotoOp;
 import org.jf.dexlib2.iface.instruction.OffsetInstruction;
-import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 public class UselessBranch implements Optimization.ReOptimize {
@@ -22,7 +21,7 @@ public class UselessBranch implements Optimization.ReOptimize {
             return instruction.getCodeOffset() == instruction.getCodeUnits();
         });
         validAddresses.forEach(address -> {
-            Utils.print("UselessBranch: " + manipulator.getOp(address));
+            print(manipulator.getOp(address));
             manipulator.removeInstruction(address);
         });
         return validAddresses.size();

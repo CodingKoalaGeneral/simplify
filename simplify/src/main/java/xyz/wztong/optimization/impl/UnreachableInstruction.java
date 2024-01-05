@@ -6,7 +6,6 @@ import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderTryBlock;
-import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.Arrays;
@@ -71,7 +70,7 @@ public class UnreachableInstruction implements Optimization.ReOptimize {
         var implementation = manipulator.getMethod().getImplementation();
         validAddresses.forEach(address -> {
             var op = manipulator.getOp(address);
-            Utils.print("UnreachableInstruction: " + op);
+            print(op);
             if (op instanceof SwitchOp switchOp) {
                 var payloadAddress = switchOp.getChildren()[0].getCodeAddress();
                 // TODO: Maybe a payload will share between switches?

@@ -2,7 +2,6 @@ package xyz.wztong.optimization.impl;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.jf.dexlib2.Opcode;
-import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 public class NopInstruction implements Optimization.ReOptimize {
@@ -27,7 +26,7 @@ public class NopInstruction implements Optimization.ReOptimize {
             return Opcode.NOP.equals(opcode);
         });
         validAddresses.forEach(address -> {
-            Utils.print("NopInstruction: " + manipulator.getOp(address));
+            print(manipulator.getOp(address));
             manipulator.removeInstruction(address);
         });
         return validAddresses.size();

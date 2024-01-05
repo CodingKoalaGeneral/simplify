@@ -52,7 +52,7 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
                 var nextOpAddress = gotoOp.getChildren()[0].getCodeAddress();
                 var nextLocation = manipulator.getLocation(nextOpAddress);
                 if (nextLocation == null) {
-                    Utils.print("DirectGotoDestination: Invalid goto:" + gotoOp);
+                    print("Invalid goto:" + gotoOp);
                     continue;
                 }
                 nextOp = manipulator.getOp(nextOpAddress);
@@ -83,10 +83,11 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
             }
         }
         var filterOps = new HashSet<>(gotoOps);
-        var currentTestOp = filterOps.iterator().next();
-        filterOps.remove(currentTestOp);
         var positions = new ArrayList<Map.Entry<List<Integer>, Integer>>();
-        do {
+        GotoOp currentTestOp;
+        while (!filterOps.isEmpty()) {
+            currentTestOp = filterOps.iterator().next();
+            filterOps.remove(currentTestOp);
             var currentRemoveOps = new ArrayList<GotoOp>();
             for (var filterOp : filterOps) {
                 if (dus.find(opToIndex.get(filterOp)) == dus.find(opToIndex.get(currentTestOp))) {
@@ -98,11 +99,7 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
             for (var currentRemoveOp : currentRemoveOps) {
                 filterOps.remove(currentRemoveOp);
             }
-            if (filterOps.isEmpty()) {
-                break;
-            }
-            currentTestOp = filterOps.iterator().next();
-        } while (true);
+        }
         var modifyCount = 0;
         var impl = manipulator.getMethod().getImplementation();
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(manipulator.toSmali(true)), null);
@@ -152,7 +149,7 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
 
     // Return: [ MultipleRoots -> Destiny ]
     private Map.Entry<List<Integer>, Integer> getPositions(List<GotoOp> gotoOps) {
-        var roots = new ArrayList<Integer>();
+        var roots = new HashSet<Integer>();
         int dest = -1;
         NextPossibleRoot:
         for (var currentOp : gotoOps) {
@@ -161,7 +158,9 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
                     continue NextPossibleRoot;
                 }
             }
-            roots.add(currentOp.getAddress());
+            if (!roots.add(currentOp.getAddress())) {
+                System.out.println();
+            }
         }
         NextPossibleExit:
         for (var currentOp : gotoOps) {
@@ -177,7 +176,7 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
         if (dest == -1 || roots.isEmpty()) {
             throw new IllegalStateException("Want to find nodes with a non-disjoint-union sets?");
         }
-        return Map.entry(roots, dest);
+        return Map.entry(new ArrayList<>(roots), dest);
     }
 
     private static class DisjointUnionSets {

@@ -73,7 +73,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 var targetAddress = switchAddress + targetOffset;
                 var targetLocation = manipulator.getLocation(targetAddress);
                 if (targetLocation == null) {
-                    Utils.print("ConstantSwitch: " + switchOp + "@" + Integer.toHexString(switchAddress) + " goes to an invalid address (position=" + Integer.toHexString(targetAddress) + ", offset=" + Integer.toHexString(targetOffset) + ")");
+                    print(switchOp + "@" + Integer.toHexString(switchAddress) + " goes to an invalid address (position=" + Integer.toHexString(targetAddress) + ", offset=" + Integer.toHexString(targetOffset) + ")");
                     continue;
                 }
                 validNodesWithSwitchAddress.add(Map.entry(node, targetAddress));
@@ -122,7 +122,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             } else {
                 gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
             }
-            Utils.print("ConstantSwitch: " + manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
+            print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
             manipulator.addInstruction(from, gotoInstruction);
             // After inserting an instruction, all offsets need to be re-caculated
             var insertLength = gotoInstruction.getCodeUnits();
