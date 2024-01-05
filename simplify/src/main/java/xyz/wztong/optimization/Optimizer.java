@@ -67,6 +67,8 @@ public class Optimizer {
         }
         if (reOptimizeCount != 0) {
             return reOptimizeCount;
+        } else {
+            Utils.print("Optimization.ReOptimize: No further to optimize, doing Optimization.ReExecute");
         }
         // Re-Execute should just run once, then re-execute
         for (var optimization : optimizations) {
@@ -80,6 +82,7 @@ public class Optimizer {
                 return newChange;
             }
         }
+        Utils.print("Optimization: No further to optimize, finished");
         return OPTIMIZER_OPTIMIZED;
     }
 
