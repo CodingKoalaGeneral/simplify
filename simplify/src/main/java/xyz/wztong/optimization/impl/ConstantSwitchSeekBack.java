@@ -121,7 +121,26 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             // The value source from a method/instruction has side effect, cannot optimize
             return null;
         }
-        if (parentOp instanceof MoveOp moveOp) {
+        if (currentOp instanceof ConstOp constOp) {
+            // unknown-instruction               ----  parent op
+            // const(?) current <= constVal      ----  current op
+            if (constOp.getDestRegister() == constRegister.get()) {
+                return node;
+            } else {
+                // const operation on other registers, side effect may occur
+                return null;
+            }
+        } else if (parentOp instanceof ConstOp constOp) {
+            // const(?) current <= constVal      ----  parent op
+            // unknown-instruction               ----  current op
+            if (constOp.getDestRegister() == constRegister.get()) {
+                return parentNode;
+            } else {
+                // TODO: Side effect may occur when seek back deeper, but it's safe here?
+//                return node;
+                return null;
+            }
+        } else if (parentOp instanceof MoveOp moveOp) {
             if (moveOp.getToRegister() != constRegister.get()) {
                 // Side effect may occur
                 return null;
@@ -140,28 +159,16 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 // MoveType(EXCEPTION) will have side effects
                 return null;
             }
-        } else if (parentOp instanceof ConstOp constOp) {
-            // const(?) current <= constVal      ----  parent op
-            // unknown-instruction               ----  current op
-            if (constOp.getDestRegister() == constRegister.get()) {
-                return parentNode;
-            } else {
-                return null;
-            }
-        } else if (currentOp instanceof ConstOp constOp) {
-            // unknown-instruction               ----  parent op
-            // const(?) current <= constVal      ----  current op
-            if (constOp.getDestRegister() == constRegister.get()) {
-                return node;
-            } else {
-                // const operation on other registers, side effect may occur
-                return null;
-            }
         } else if (parentOp instanceof InvokeOp invokeOp) {
             var parameterRegisters = invokeOp.getParameterRegisters();
             if (parameterRegisters.length > 1) {
-                // TODO: How to track if a const result comes from
-                return null;
+                // TODO: How to track if a const result comes from multiple source?
+                // Current: We may stop here?
+                Utils.print("Unresolved case!!");
+                Utils.print("Unresolved case!!");
+                Utils.print("Unresolved case!!");
+                Utils.threadSleep(1000);
+                return node;
             }
             // Check current function result assignment, expected:
             // invoke-(*) L*;->*(*)*           ---- parent op
@@ -182,9 +189,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         } else if (parentOp instanceof GotoOp) {
             // Goto has no side effect, all resgisters keeps the same
             return parentNode;
-        } else {
-            return null;
         }
+        // else if (parentOp instanceof IfOp)
+        // Note: If with constant switch should have been optimized
+        return null;
     }
 
     private static int getRegister(SwitchOp switchOp) {
