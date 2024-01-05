@@ -41,7 +41,6 @@ public class Utils {
         ExecutionGraph graph;
         do {
             graph = vm.execute(method);
-            System.out.println();
         } while (Optimizer.optimize(graph) != Optimizer.OPTIMIZER_OPTIMIZED);
         var smali = graph.toSmali(true);
         writeDex(vm, path + "." + Integer.toHexString(smali.hashCode()) + ".dex");
