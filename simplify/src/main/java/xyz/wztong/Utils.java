@@ -32,7 +32,7 @@ public class Utils {
         do {
             graph = vm.execute(method);
             System.out.println();
-        } while (Optimizer.optimize(graph) != 0);
+        } while (Optimizer.optimize(graph) != Optimizer.OPTIMIZER_OPTIMIZED);
         writeDex(vm, path + ".dex");
         return graph.toSmali(true);
     }

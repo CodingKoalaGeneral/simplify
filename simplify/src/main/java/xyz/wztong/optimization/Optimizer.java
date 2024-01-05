@@ -13,6 +13,12 @@ public class Optimizer {
 
     private static final Set<Optimization> DEFAULT_OPTIMIZATIONS = new HashSet<>();
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
+    public static final int OPTIMIZER_OPTIMIZED = -1;
+    private static int maxOptimizePass = 0x10;
+
+    public static void setMaxOptimizePass(int optimizePass) {
+        maxOptimizePass = optimizePass;
+    }
 
     static {
         addOptimization(new ConstantPredicate());
@@ -39,16 +45,28 @@ public class Optimizer {
         var vm = graph.getVM();
         var method = graph.getMethod();
         var manipulator = new ExecutionGraphManipulator(graph, method, vm, vm.getClassManager().getDexBuilder());
-        for (var optimization : optimizations) {
-            if (!(optimization instanceof Optimization.ReOptimize)) {
-                continue;
+        var reOptimizeCount = 0;
+        for (int i = 0; i < maxOptimizePass; i++) {
+            var passChanges = 0;
+            for (var optimization : optimizations) {
+                if (!(optimization instanceof Optimization.ReOptimize)) {
+                    continue;
+                }
+                var newChange = optimization.perform(manipulator);
+                if (newChange != 0) {
+                    Utils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
+                    vm.updateInstructionGraph(method);
+                    passChanges += newChange;
+                }
             }
-            var newChange = optimization.perform(manipulator);
-            if (newChange != 0) {
-                Utils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
-                vm.updateInstructionGraph(method);
-                return newChange;
+            if (passChanges == 0) {
+                break;
+            } else {
+                reOptimizeCount += passChanges;
             }
+        }
+        if (reOptimizeCount != 0) {
+            return reOptimizeCount;
         }
         // Re-Execute should just run once, then re-execute
         for (var optimization : optimizations) {
@@ -62,7 +80,7 @@ public class Optimizer {
                 return newChange;
             }
         }
-        return 0;
+        return OPTIMIZER_OPTIMIZED;
     }
 
 }
