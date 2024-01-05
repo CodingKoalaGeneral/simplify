@@ -9,4 +9,9 @@ public class SelfDefinedInstance extends UnknownValue implements org.cf.smalivm.
     public String getInternalType() {
         return ClassNameUtils.sourceToInternal(this.getClass().getName().replace(Utils.BASE_TYPE_PACKAGE + ".", ""));
     }
+
+    @Override
+    public String toString() {
+        return getInternalType();
+    }
 }

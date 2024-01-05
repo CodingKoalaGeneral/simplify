@@ -12,9 +12,8 @@ public class makeText extends EmulateMethodStateMethod {
     @Override
     protected void execute(VirtualMachine vm, Op op, MethodState mState) {
         var textHeap = mState.peekParameter(1);
-        CharSequence text;
         HeapItem result;
-        if (textHeap.isKnown() && (text = (CharSequence) textHeap.getValue()) != null) {
+        if (textHeap.getValue() instanceof CharSequence text) {
             Utils.printExecutingFunction(text);
             result = new HeapItem(new Toast(text), Utils.getCallingEmulateClassInternal());
         } else {

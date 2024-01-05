@@ -11,10 +11,11 @@ public class show extends EmulateMethodStateMethod {
     @Override
     protected void execute(VirtualMachine vm, Op op, MethodState mState) {
         var toastHeap = mState.peekParameter(0);
-        CharSequence toastText = "*UNKNOWN*";
-        Toast toast;
-        if(toastHeap.isKnown() && (toast = (Toast) toastHeap.getValue())!=null){
+        CharSequence toastText;
+        if (toastHeap.getValue() instanceof Toast toast) {
             toastText = String.valueOf(toast.text);
+        }else{
+            toastText = "*UNKNOWN*";
         }
         Utils.printExecutingFunction(toastText);
     }
