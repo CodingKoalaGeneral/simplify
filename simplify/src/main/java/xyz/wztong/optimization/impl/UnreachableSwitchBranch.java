@@ -66,7 +66,7 @@ public class UnreachableSwitchBranch implements Optimization.ReExecute {
             });
             var newSwitchPayloadInstruction = new BuilderSparseSwitchPayload(newSwitchPayloadElement);
             replaced += keyToRemove.size();
-            print(switchPayloadOp + " " + keyToRemove);
+            print("@" + Integer.toHexString(switchPayloadOp.getAddress()) + " <=X= " + keyToRemove);
             manipulator.getMethod().getImplementation().replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
             manipulatorRebuildGraph(manipulator);
         }
