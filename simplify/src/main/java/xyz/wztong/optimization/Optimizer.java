@@ -6,13 +6,15 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.impl.*;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings("UnusedReturnValue")
 public class Optimizer {
 
     private static final Set<Class<? extends Optimization>> DEFAULT_OPTIMIZATIONS_SET = new HashSet<>();
-    private static final Set<Optimization> DEFAULT_OPTIMIZATIONS = new HashSet<>();
+    private static final List<Optimization> DEFAULT_OPTIMIZATIONS = new LinkedList<>();
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
     public static final int OPTIMIZER_OPTIMIZED = -1;
     private static int maxOptimizePass = 0x10;
@@ -33,9 +35,9 @@ public class Optimizer {
 
         // Re-Execute: Order required
         addOptimization(new MergeMultipleGoto());
-        addOptimization(new SwitchThenGoto());
         addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
         addOptimization(new UnreachableSwitchBranch());
+        addOptimization(new SwitchThenGoto());
     }
 
     public static boolean addOptimization(Optimization e) {
@@ -49,7 +51,7 @@ public class Optimizer {
         return optimize(DEFAULT_OPTIMIZATIONS, graph);
     }
 
-    public static int optimize(Set<Optimization> optimizations, ExecutionGraph graph) {
+    public static int optimize(List<Optimization> optimizations, ExecutionGraph graph) {
         var vm = graph.getVM();
         var method = graph.getMethod();
         var manipulator = new ExecutionGraphManipulator(graph, method, vm, vm.getClassManager().getDexBuilder());
