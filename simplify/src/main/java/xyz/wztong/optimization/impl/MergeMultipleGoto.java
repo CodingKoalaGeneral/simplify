@@ -76,7 +76,7 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
             }
         }
         var filterOps = new HashSet<>(gotoOps);
-        var positionsComplicated = new ArrayList<Map.Entry<List<Integer>, Integer>>();
+        var positions = new ArrayList<Map.Entry<Integer, Integer>>();
         GotoOp currentTestOp;
         while (!filterOps.isEmpty()) {
             currentTestOp = filterOps.iterator().next();
@@ -88,37 +88,20 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                 }
             }
             currentRemoveOps.add(currentTestOp);
-            positionsComplicated.add(getPositions(currentRemoveOps));
+            positions.addAll(getPositions(currentRemoveOps));
             for (var currentRemoveOp : currentRemoveOps) {
                 filterOps.remove(currentRemoveOp);
             }
         }
-        var positionsFlat = new ArrayList<Map.Entry<Integer, Integer>>();
-        positionsComplicated.forEach(positions -> {
-            var dest = positions.getValue();
-            positions.getKey().forEach(src -> {
-                positionsFlat.add(Map.entry(src, dest));
-            });
-        });
-        Utils.addGotos(this, manipulator, positionsFlat);
-        return positionsFlat.size();
+        Utils.addGotos(this, manipulator, positions);
+        return positions.size();
     }
 
-    // Return: [ MultipleRoots -> Destiny ]
-    private Map.Entry<List<Integer>, Integer> getPositions(List<GotoOp> gotoOps) {
-        var roots = new HashSet<Integer>();
-        int dest = -1;
-        NextPossibleRoot:
-        for (var currentOp : gotoOps) {
-            for (var testOp : gotoOps) {
-                if (testOp.getChildren()[0].getCodeAddress() == currentOp.getAddress()) {
-                    continue NextPossibleRoot;
-                }
-            }
-            if (!roots.add(currentOp.getAddress())) {
-                throw new IllegalStateException("Multiple positions for the same goto op?");
-            }
+    private List<Map.Entry<Integer, Integer>> getPositions(List<GotoOp> gotoOps) {
+        if (gotoOps.size() <= 1) {
+            throw new IllegalStateException("Disjoint-union sets with single or no elements should not happen");
         }
+        int dest = -1;
         NextPossibleExit:
         for (var currentOp : gotoOps) {
             var currentPointAddress = currentOp.getChildren()[0].getCodeAddress();
@@ -127,13 +110,32 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                     continue NextPossibleExit;
                 }
             }
-            dest = currentPointAddress;
-            break;
+            if (dest == -1) {
+                dest = currentPointAddress;
+            } else {
+                throw new IllegalStateException("Disjoint-union sets with multiple exit?");
+            }
         }
-        if (dest == -1 || roots.isEmpty()) {
-            throw new IllegalStateException("Want to find nodes with a non-disjoint-union sets?");
+        if (dest == -1) {
+            throw new IllegalStateException("Disjoint-union sets without exit?");
         }
-        return Map.entry(new ArrayList<>(roots), dest);
+        var finalDest = dest;
+        var roots = new HashSet<Integer>();
+        NextPossibleRoot:
+        for (var currentOp : gotoOps) {
+            for (var testOp : gotoOps) {
+                if (testOp.getChildren()[0].getCodeAddress() == currentOp.getAddress()) {
+                    continue NextPossibleRoot;
+                }
+            }
+            if (!roots.add(currentOp.getAddress())) {
+                throw new IllegalStateException("Disjoint-union sets with multiple same instances?");
+            }
+        }
+        if (roots.isEmpty()) {
+            throw new IllegalStateException("Disjoint-union sets without leaves?");
+        }
+        return roots.stream().map(root -> Map.entry(root, finalDest)).toList();
     }
 
     private static class DisjointUnionSets {
