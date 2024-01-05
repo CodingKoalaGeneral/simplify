@@ -5,8 +5,11 @@ import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.opcode.IfOp;
 import org.cf.util.Utils;
 import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.builder.BuilderInstruction;
 import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10x;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.optimization.Optimization;
 
@@ -67,7 +70,16 @@ public class ConstantPredicate implements Optimization.ReOptimize {
                     throw new IllegalStateException("What? A IfOp contains no instruction?");
                 }
                 var target = targetInstruction.getTarget();
-                manipulator.replaceInstruction(address, new BuilderInstruction30t(Opcode.GOTO_32, target));
+                var offsetAbs = Math.abs(targetInstruction.getTarget().getCodeAddress() - address);
+                BuilderInstruction gotoInstruction;
+                if (offsetAbs < 0x7f) {
+                    gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, target);
+                } else if (offsetAbs < 0x7fff) {
+                    gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, target);
+                } else {
+                    gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, target);
+                }
+                manipulator.replaceInstruction(address, gotoInstruction);
             } else {
                 manipulator.replaceInstruction(address, new BuilderInstruction10x(Opcode.NOP));
             }
