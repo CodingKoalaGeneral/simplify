@@ -10,7 +10,7 @@ import xyz.wztong.type.android.app.Application;
 public class getApplication extends EmulateMethodStateMethod {
     @Override
     protected void execute(VirtualMachine vm, Op op, MethodState mState) {
-        Utils.printExecutingFunction();
+        Utils.printExecutingFunction("Application.INSTANCE");
         mState.assignReturnRegister(Application.INSTANCE, "Landroid/app/Application;");
     }
 }

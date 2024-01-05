@@ -12,7 +12,7 @@ public class setContentView extends EmulateMethodStateMethod {
     protected void execute(VirtualMachine vm, Op op, MethodState mState) {
         var viewIdHeap = mState.peekParameter(1);
         if (viewIdHeap.getValue() instanceof Integer viewId) {
-            Utils.printExecutingFunction(String.valueOf(viewId));
+            Utils.printExecutingFunction(Integer.toHexString(viewId));
             var activityValue = mState.peekParameter(0).getValue();
             if (activityValue instanceof Activity activity) {
                 activity.contentView = viewId;
