@@ -100,9 +100,8 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                 positionsFlat.add(Map.entry(src, dest));
             });
         });
-        var modifyCount = 0;
         Utils.addGotos(this, manipulator, positionsFlat);
-        return modifyCount;
+        return positionsFlat.size();
     }
 
     // Return: [ MultipleRoots -> Destiny ]
