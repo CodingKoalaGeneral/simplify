@@ -12,7 +12,6 @@ import java.util.Set;
 public class Optimizer {
 
     private static final Set<Optimization> DEFAULT_OPTIMIZATIONS = new HashSet<>();
-    private static final int MAX_OPTIMIZE_PASS = 5;
     private static final int DEFAULT_SEEK_BACK_LIMIT = 0x10;
 
     static {
@@ -22,7 +21,8 @@ public class Optimizer {
         addOptimization(new DeadAssignment());
         addOptimization(new DeadFunctionResult());
         addOptimization(new NopInstruction());
-        addOptimization(new Unreachable());
+        addOptimization(new UnreachableInstruction());
+        addOptimization(new UnreachableSwitchBranch());
         addOptimization(new UselessBranch());
     }
 
@@ -34,34 +34,20 @@ public class Optimizer {
         return optimize(DEFAULT_OPTIMIZATIONS, graph);
     }
 
-    // Return: Re-execute needed count
     public static int optimize(Set<Optimization> optimizations, ExecutionGraph graph) {
         var vm = graph.getVM();
         var method = graph.getMethod();
         var manipulator = new ExecutionGraphManipulator(graph, method, vm, vm.getClassManager().getDexBuilder());
-        var reOptimizeChange = 0;
-        for (int i = 0; i < MAX_OPTIMIZE_PASS; i++) {
-            var reOptimizeChangeRound = 0;
-            for (var optimization : optimizations) {
-                if (!(optimization instanceof Optimization.ReOptimize)) {
-                    continue;
-                }
-                var newChange = optimization.perform(manipulator);
-                if (newChange != 0) {
-                    Utils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
-                    reOptimizeChangeRound += newChange;
-                }
+        for (var optimization : optimizations) {
+            if (!(optimization instanceof Optimization.ReOptimize)) {
+                continue;
             }
-            if (reOptimizeChangeRound == 0) {
-                break;
-            } else {
-                reOptimizeChange += reOptimizeChangeRound;
+            var newChange = optimization.perform(manipulator);
+            if (newChange != 0) {
+                Utils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
+                vm.updateInstructionGraph(method);
+                return newChange;
             }
-        }
-        if (reOptimizeChange != 0) {
-            vm.updateInstructionGraph(method);
-            Utils.print("Optimizer.ReOptimize: Simplified(" + reOptimizeChange + "): " + method);
-            return reOptimizeChange;
         }
         // Re-Execute should just run once, then re-execute
         for (var optimization : optimizations) {
