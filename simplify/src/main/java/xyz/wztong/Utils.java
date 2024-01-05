@@ -33,8 +33,9 @@ public class Utils {
             graph = vm.execute(method);
             System.out.println();
         } while (Optimizer.optimize(graph) != Optimizer.OPTIMIZER_OPTIMIZED);
-        writeDex(vm, path + ".dex");
-        return graph.toSmali(true);
+        var smali = graph.toSmali(true);
+        writeDex(vm, path + "." + Integer.toHexString(smali.hashCode()) + ".dex");
+        return smali;
     }
 
     @SuppressWarnings("unused")
