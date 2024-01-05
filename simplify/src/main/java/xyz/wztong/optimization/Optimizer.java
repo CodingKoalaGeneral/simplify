@@ -28,6 +28,7 @@ public class Optimizer {
         addOptimization(new DeadFunctionResult());
         addOptimization(new MergeMultipleGoto());
         addOptimization(new NopInstruction());
+        addOptimization(new SwitchThenGoto());
         addOptimization(new UnreachableInstruction());
         addOptimization(new UnreachableSwitchBranch());
         addOptimization(new UselessBranch());
