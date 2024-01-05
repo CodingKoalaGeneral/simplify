@@ -20,6 +20,7 @@ public class Optimizer {
         addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
         addOptimization(new DeadAssignment());
         addOptimization(new DeadFunctionResult());
+        addOptimization(new MergeMultipleGoto());
         addOptimization(new NopInstruction());
         addOptimization(new UnreachableInstruction());
         addOptimization(new UnreachableSwitchBranch());
