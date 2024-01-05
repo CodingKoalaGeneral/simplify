@@ -22,21 +22,24 @@ public class Optimizer {
     }
 
     static {
+        // ReOptimize
         addOptimization(new ConstantPredicate());
         addOptimization(new ConstantPropagation());
-        addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
         addOptimization(new DeadAssignment());
         addOptimization(new DeadFunctionResult());
-        addOptimization(new MergeMultipleGoto());
         addOptimization(new NopInstruction());
-        addOptimization(new SwitchThenGoto());
         addOptimization(new UnreachableInstruction());
-        addOptimization(new UnreachableSwitchBranch());
         addOptimization(new UselessBranch());
+
+        // Re-Execute: Order required
+        addOptimization(new MergeMultipleGoto());
+        addOptimization(new SwitchThenGoto());
+        addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
+        addOptimization(new UnreachableSwitchBranch());
     }
 
     public static boolean addOptimization(Optimization e) {
-        if(DEFAULT_OPTIMIZATIONS_SET.contains(e.getClass())){
+        if(!DEFAULT_OPTIMIZATIONS_SET.add(e.getClass())){
             return false;
         }
         return DEFAULT_OPTIMIZATIONS.add(e);
