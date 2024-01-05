@@ -96,8 +96,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 } while (currentNode != tempTargetNode && tempTargetNode != null);
                 var targetNode = tempTargetNode == null ? currentNode : tempTargetNode;
                 var from = targetNode.getAddress();
-                if (jumpTable.stream().anyMatch(table -> table.getKey() == from)) {
-                    throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug");
+                if (jumpTable.stream().anyMatch(table -> table.getKey() == from && !targetAddress.equals(table.getValue()))) {
+                    Utils.print("Serious! Various position jumps from same position. This is definately a bug, currently ignoring");
+                    // Instead of throwing an Exception
+                    return 0;
                 }
                 jumpTable.add(Map.entry(from, targetAddress));
             }
