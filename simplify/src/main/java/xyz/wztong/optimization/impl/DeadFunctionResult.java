@@ -66,7 +66,7 @@ public class DeadFunctionResult implements Optimization.ReOptimize {
         List<ExecutionNode> children = graph.getChildren(address);
         for (ExecutionNode child : children) {
             Set<Integer> newRegisters = new HashSet<>(registers);
-            if (isAnyRegisterUsed(newRegisters, graph, child)) {
+            if (isAnyRegisterUsed(newRegisters, child)) {
                 return true;
             }
         }
@@ -74,7 +74,7 @@ public class DeadFunctionResult implements Optimization.ReOptimize {
     }
 
     @SuppressWarnings("DuplicatedCode")
-    private static boolean isAnyRegisterUsed(Set<Integer> usedRegisters, ExecutionGraphManipulator graph, ExecutionNode node) {
+    private static boolean isAnyRegisterUsed(Set<Integer> usedRegisters, ExecutionNode node) {
         var current = node;
         var reassignedRegisters = new HashSet<Integer>();
         while (true) {
@@ -104,7 +104,7 @@ public class DeadFunctionResult implements Optimization.ReOptimize {
             } else {
                 for (ExecutionNode child : children) {
                     Set<Integer> newRegisters = new HashSet<>(usedRegisters);
-                    if (isAnyRegisterUsed(newRegisters, graph, child)) {
+                    if (isAnyRegisterUsed(newRegisters, child)) {
                         return true;
                     }
                 }
