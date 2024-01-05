@@ -4,16 +4,10 @@ import gnu.trove.map.TIntIntMap;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.opcode.*;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -106,37 +100,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             }
         }
         // Adding instructions from bottom
-        jumpTable.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
-        var impl = manipulator.getMethod().getImplementation();
-        for (int i = 0; i < jumpTable.size(); i++) {
-            var table = jumpTable.get(i);
-            var from = table.getKey();
-            var to = table.getValue();
-            var toLabel = impl.newLabelForAddress(to);
-            BuilderInstruction gotoInstruction;
-            var offsetAbs = Math.abs(to - from);
-            if (offsetAbs < 0x7f) {
-                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
-            } else if (offsetAbs < 0x7fff) {
-                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
-            } else {
-                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
-            }
-            print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
-            manipulator.addInstruction(from, gotoInstruction);
-            // After inserting an instruction, all offsets need to be re-caculated
-            var insertLength = gotoInstruction.getCodeUnits();
-            for (int j = 0; j < jumpTable.size(); j++) {
-                var impactTable = jumpTable.get(j);
-                // From is always smaller than modifing instruction's position
-                var impactFrom = impactTable.getKey();
-                var impactTo = impactTable.getValue();
-                if (impactTo > from) {
-                    var newTo = impactTo + insertLength;
-                    jumpTable.set(j, Map.entry(impactFrom, newTo));
-                }
-            }
-        }
+        Utils.addGotos(this, manipulator, jumpTable);
         return jumpTable.size();
     }
 

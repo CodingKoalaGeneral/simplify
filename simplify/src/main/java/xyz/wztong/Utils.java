@@ -1,5 +1,6 @@
 package xyz.wztong;
 
+import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.VirtualMachineFactory;
@@ -10,12 +11,21 @@ import org.cf.smalivm.emulate.EmulatedMethod;
 import org.cf.smalivm.emulate.MethodEmulator;
 import org.cf.smalivm.exception.VirtualMachineException;
 import org.cf.util.ClassNameUtils;
+import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import org.jf.dexlib2.writer.io.FileDataStore;
+import xyz.wztong.optimization.Optimization;
 import xyz.wztong.optimization.Optimizer;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class Utils {
     public static final String BASE_EMULATE_PACKAGE = "xyz.wztong.emulate";
@@ -154,6 +164,40 @@ public class Utils {
             vm.getClassManager().getDexBuilder().writeTo(new FileDataStore(new File(path)));
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static void addGotos(Optimization optimization, ExecutionGraphManipulator manipulator, List<Map.Entry<Integer, Integer>> jumpTable) {
+        jumpTable.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
+        var impl = manipulator.getMethod().getImplementation();
+        for (int i = 0; i < jumpTable.size(); i++) {
+            var table = jumpTable.get(i);
+            var from = table.getKey();
+            var to = table.getValue();
+            var toLabel = impl.newLabelForAddress(to);
+            BuilderInstruction gotoInstruction;
+            var offsetAbs = Math.abs(to - from);
+            if (offsetAbs < 0x7f) {
+                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
+            } else if (offsetAbs < 0x7fff) {
+                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
+            } else {
+                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
+            }
+            optimization.print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
+            manipulator.addInstruction(from, gotoInstruction);
+            // After inserting an instruction, all offsets need to be re-caculated
+            var insertLength = gotoInstruction.getCodeUnits();
+            for (int j = 0; j < jumpTable.size(); j++) {
+                var impactTable = jumpTable.get(j);
+                // From is always smaller than modifing instruction's position
+                var impactFrom = impactTable.getKey();
+                var impactTo = impactTable.getValue();
+                if (impactTo > from) {
+                    var newTo = impactTo + insertLength;
+                    jumpTable.set(j, Map.entry(impactFrom, newTo));
+                }
+            }
         }
     }
 }

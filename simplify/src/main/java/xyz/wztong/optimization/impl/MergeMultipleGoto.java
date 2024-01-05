@@ -3,17 +3,9 @@ package xyz.wztong.optimization.impl;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.opcode.GotoOp;
 import org.cf.smalivm.opcode.Op;
-import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
-import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.awt.*;
-import java.awt.datatransfer.StringSelection;
-import java.util.List;
 import java.util.*;
 
 // Must be inferred last, I don't know why, but as a ReOptimizer, it will cause crash (manipulator unable to get op)
@@ -84,7 +76,7 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
             }
         }
         var filterOps = new HashSet<>(gotoOps);
-        var positions = new ArrayList<Map.Entry<List<Integer>, Integer>>();
+        var positionsComplicated = new ArrayList<Map.Entry<List<Integer>, Integer>>();
         GotoOp currentTestOp;
         while (!filterOps.isEmpty()) {
             currentTestOp = filterOps.iterator().next();
@@ -96,54 +88,20 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                 }
             }
             currentRemoveOps.add(currentTestOp);
-            positions.add(getPositions(currentRemoveOps));
+            positionsComplicated.add(getPositions(currentRemoveOps));
             for (var currentRemoveOp : currentRemoveOps) {
                 filterOps.remove(currentRemoveOp);
             }
         }
+        var positionsFlat = new ArrayList<Map.Entry<Integer, Integer>>();
+        positionsComplicated.forEach(positions -> {
+            var dest = positions.getValue();
+            positions.getKey().forEach(src -> {
+                positionsFlat.add(Map.entry(src, dest));
+            });
+        });
         var modifyCount = 0;
-        var impl = manipulator.getMethod().getImplementation();
-        for (int i = 0; i < positions.size(); i++) {
-            var position = positions.get(i);
-            var starts = position.getKey();
-            var exit = position.getValue();
-            var exitLabel = impl.newLabelForAddress(exit);
-            for (var start : starts) {
-                var offsetAbs = Math.abs(exit - start);
-                BuilderInstruction gotoInstruction;
-                if (offsetAbs < 0x7f) {
-                    gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, exitLabel);
-                } else if (offsetAbs < 0x7fff) {
-                    gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, exitLabel);
-                } else {
-                    gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, exitLabel);
-                }
-                // Update affected offset
-                for (int k = 0; k < positions.size(); k++) {
-                    var impactPosition = positions.get(k);
-                    if (impactPosition.equals(position)) {
-                        continue;
-                    }
-                    var impactStarts = impactPosition.getKey();
-                    var impactExit = impactPosition.getValue();
-                    for (int l = 0; l < impactStarts.size(); l++) {
-                        var impactStart = impactStarts.get(l);
-                        int gotoInstructionCodeUnits = gotoInstruction.getCodeUnits();
-                        // TODO: Determine if it's right to contain equals
-                        if (impactStart < start && start + gotoInstructionCodeUnits <= impactExit) {
-                            positions.set(k, Map.entry(impactStarts, impactExit + gotoInstructionCodeUnits));
-                        } else if (start < impactStart) {
-                            var newImpactStarts = new ArrayList<>(impactStarts);
-                            newImpactStarts.replaceAll(address -> address + gotoInstructionCodeUnits);
-                            positions.set(k, Map.entry(newImpactStarts, impactExit + gotoInstructionCodeUnits));
-                        }
-                    }
-                }
-                manipulator.addInstruction(start, gotoInstruction);
-                print("Merge gotos: " + starts + " => " + exit);
-            }
-            modifyCount += starts.size();
-        }
+        Utils.addGotos(this, manipulator, positionsFlat);
         return modifyCount;
     }
 
@@ -159,7 +117,7 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                 }
             }
             if (!roots.add(currentOp.getAddress())) {
-                System.out.println();
+                throw new IllegalStateException("Multiple positions for the same goto op?");
             }
         }
         NextPossibleExit:
