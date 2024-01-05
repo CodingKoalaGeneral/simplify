@@ -10,7 +10,7 @@ import xyz.wztong.optimization.Optimization;
 
 import java.util.ArrayList;
 
-public class UnreachableSwitchBranch implements Optimization.ReOptimize {
+public class UnreachableSwitchBranch implements Optimization.ReExecute {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var switchOpAddresses = getValidAddresses(manipulator, address -> {
