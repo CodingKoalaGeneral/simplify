@@ -16,7 +16,8 @@ import java.awt.datatransfer.StringSelection;
 import java.util.List;
 import java.util.*;
 
-public class MergeMultipleGoto implements Optimization.ReOptimize {
+// Must be inferred last, I don't know why, but as a ReOptimizer, it will cause crash (manipulator unable to get op)
+public class MergeMultipleGoto implements Optimization.ReExecute {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddressesImmutable = getValidAddresses(manipulator, address -> {
@@ -102,7 +103,6 @@ public class MergeMultipleGoto implements Optimization.ReOptimize {
         }
         var modifyCount = 0;
         var impl = manipulator.getMethod().getImplementation();
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(manipulator.toSmali(true)), null);
         for (int i = 0; i < positions.size(); i++) {
             var position = positions.get(i);
             var starts = position.getKey();
