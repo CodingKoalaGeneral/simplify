@@ -12,7 +12,7 @@ import xyz.wztong.optimization.Optimization;
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class Unreachable implements Optimization.ReOptimize {
+public class UnreachableInstruction implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var handlerAddresses = new HashSet<>();
@@ -71,7 +71,7 @@ public class Unreachable implements Optimization.ReOptimize {
         var implementation = manipulator.getMethod().getImplementation();
         validAddresses.forEach(address -> {
             var op = manipulator.getOp(address);
-            Utils.print("Unreachable: " + op);
+            Utils.print("UnreachableInstruction: " + op);
             if (op instanceof SwitchOp switchOp) {
                 var payloadAddress = switchOp.getChildren()[0].getCodeAddress();
                 // TODO: Maybe a payload will share between switches?
