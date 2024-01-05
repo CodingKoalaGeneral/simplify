@@ -2,12 +2,16 @@ package xyz.wztong;
 
 import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.VirtualMachine;
+import org.cf.smalivm.VirtualMachineFactory;
+import org.cf.smalivm.context.ExecutionGraph;
 import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.emulate.EmulatedMethod;
 import org.cf.smalivm.emulate.MethodEmulator;
+import org.cf.smalivm.exception.VirtualMachineException;
 import org.cf.util.ClassNameUtils;
 import org.jf.dexlib2.writer.io.FileDataStore;
+import xyz.wztong.optimization.Optimizer;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +21,21 @@ public class Utils {
     public static final String BASE_EMULATE_PACKAGE = "xyz.wztong.emulate";
     public static final String BASE_TYPE_PACKAGE = "xyz.wztong.type";
     public static final SideEffect.Level MAX_SIDE_EFFECT_LEVEL = SideEffect.Level.NONE;
+
+    public static String simplifyMethod(String path, String method) throws IOException, VirtualMachineException {
+        var file = new File(path);
+        if (!file.isFile()) {
+            throw new IOException("Not a file");
+        }
+        var vm = new VirtualMachineFactory().build(file);
+        ExecutionGraph graph;
+        do {
+            graph = vm.execute(method);
+            System.out.println();
+        } while (Optimizer.optimize(graph) != 0);
+        writeDex(vm, path + ".dex");
+        return graph.toSmali(true);
+    }
 
     @SuppressWarnings("unused")
     public static final List<String> DEBUGGING_FUNCTIONS = List.of("Lcom/example/check/b;->c()I");
