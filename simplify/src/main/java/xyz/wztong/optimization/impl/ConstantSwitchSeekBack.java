@@ -9,9 +9,7 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
@@ -78,13 +76,15 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 var node = validNodeWithSwitchAddress.getKey();
                 var targetAddress = validNodeWithSwitchAddress.getValue();
                 var sideEffectRegisters = new TIntHashSet();
-                var sideEffectHappened = new AtomicBoolean(false);
                 var constRegister = new AtomicInteger(switchRegister);
                 var sideEffectNodes = new LinkedList<ExecutionNode>();
-                sideEffectNodes.add(node);
+                sideEffectNodes.addLast(node);
                 NextSeekBack:
                 for (int i = 0; i < seekBackLimit; i++) {
-                    var updateResult = updateParent(node, constRegister, sideEffectHappened, sideEffectRegisters, sideEffectNodes);
+                    var updateResult = updateParent(node, constRegister, sideEffectRegisters, sideEffectNodes);
+                    if (sideEffectRegisters.contains(constRegister.get())) {
+                        throw new IllegalStateException("Oops, hidden bug triggered");
+                    }
                     switch (updateResult) {
                         case NOT_FOUND -> {
                             continue NextSwitch;
@@ -100,7 +100,6 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 if (sideEffectNodes.isEmpty()) {
                     continue;
                 }
-                int from = -1;
                 do {
                     var testNode = sideEffectNodes.pop();
                     var testNodeAddress = testNode.getAddress();
@@ -109,17 +108,13 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         return consensus != null && consensus.isKnown();
                     });
                     if (useThisNode) {
-                        from = testNodeAddress;
+                        if (jumpTable.stream().anyMatch(table -> table.getKey() == testNodeAddress && !targetAddress.equals(table.getValue()))) {
+                            throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
+                        }
+                        jumpTable.add(Map.entry(testNodeAddress, targetAddress));
+                        break;
                     }
                 } while (!sideEffectNodes.isEmpty());
-                if (from == -1) {
-                    continue;
-                }
-                int finalFrom = from;
-                if (jumpTable.stream().anyMatch(table -> table.getKey() == finalFrom && !targetAddress.equals(table.getValue()))) {
-                    throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
-                }
-                jumpTable.add(Map.entry(from, targetAddress));
             }
         }
         // Adding instructions from bottom
@@ -131,7 +126,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         TERMINATE, SEEK_BACK, NOT_FOUND, UNKNOWN
     }
 
-    private static ConstantParentStatus updateParent(ExecutionNode currentNode, AtomicInteger constRegister, AtomicBoolean sideEffectHappened, TIntHashSet sideEffectRegisters, LinkedList<ExecutionNode> sideEffectNodes) {
+    private static ConstantParentStatus updateParent(ExecutionNode currentNode, AtomicInteger constRegister, TIntHashSet sideEffectRegisters, LinkedList<ExecutionNode> sideEffectNodes) {
         var parentNode = currentNode.getParent();
         var currentOp = currentNode.getOp();
         if (parentNode == null) {
@@ -140,27 +135,27 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         }
         var parentOp = parentNode.getOp();
         if (parentOp.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
-            // The value source from a method/instruction has side effect, cannot optimize
             return ConstantParentStatus.NOT_FOUND;
         }
         if (parentOp instanceof GotoOp) {
-            // Goto has no side effect, all resgisters keeps the same
             return ConstantParentStatus.SEEK_BACK;
-        } else if (parentOp instanceof ConstOp constOp) {
+        }
+        if (parentOp instanceof ConstOp constOp) {
             var destRegister = constOp.getDestRegister();
             if (constRegister.get() == destRegister) {
                 return ConstantParentStatus.TERMINATE;
-            }
-            if (sideEffectRegisters.contains(destRegister)) {
+            } else if (sideEffectRegisters.contains(destRegister)) {
                 sideEffectRegisters.remove(destRegister);
                 return ConstantParentStatus.SEEK_BACK;
             } else {
-                // TODO
                 sideEffectRegisters.add(destRegister);
                 sideEffectNodes.addFirst(parentNode);
                 return ConstantParentStatus.SEEK_BACK;
             }
-        } else if (parentOp instanceof InvokeOp invokeOp) {
+        }
+
+        // TODO
+        if (parentOp instanceof InvokeOp invokeOp) {
             // If there is a move-result(-object) call, the invoke result is ensured to be constant, but sideEffectRegisters should be updated
             // If there is not a move-result(-object) call, the invoke is ensured have side effect low enough
             if (currentOp instanceof MoveOp moveOp && getMoveTypeString(moveOp).equals("RESULT")) {
@@ -174,7 +169,9 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 return ConstantParentStatus.TERMINATE;
             }
             return ConstantParentStatus.SEEK_BACK;
-        } else if (parentOp instanceof MoveOp moveOp) {
+        }
+        // TODO
+        if (parentOp instanceof MoveOp moveOp) {
             var fromRegister = moveOp.getTargetRegister();
             int toRegister = moveOp.getToRegister();
             var moveType = getMoveTypeString(moveOp);
@@ -198,7 +195,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                             return ConstantParentStatus.UNKNOWN;
                         }
                         // We passed a register sign which can cause side effects
-                        if (parentTo.isKnown() && parentTo.isImmutable()) {
+                        if (parentTo.isKnown()) {
                             sideEffectRegisters.add(fromRegister);
                             return ConstantParentStatus.SEEK_BACK;
                         } else {
@@ -213,6 +210,9 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     if (!(possibleInvokeOp instanceof InvokeOp)) {
                         return ConstantParentStatus.UNKNOWN;
                     }
+                    if (constRegister.get() == toRegister) {
+                        return ConstantParentStatus.SEEK_BACK;
+                    }
                     if (sideEffectRegisters.contains(toRegister)) {
                         // move-result(-object) will handle in InvokeOp, check and pass to its parent
                         return ConstantParentStatus.SEEK_BACK;
@@ -223,7 +223,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             }
         }
         // else if (parentOp instanceof IfOp) {} // Note: If with constant switch should have been optimized
-        return ConstantParentStatus.NOT_FOUND;
+        return ConstantParentStatus.UNKNOWN; // Unhandled op type
     }
 
     private static int getRegister(SwitchOp switchOp) {
