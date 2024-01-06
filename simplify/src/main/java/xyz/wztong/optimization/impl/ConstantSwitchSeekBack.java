@@ -18,7 +18,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
     @SuppressWarnings("unused")
     public ConstantSwitchSeekBack() {
-        this.seekBackLimit = DEFAULT_SEEK_BACK_LIMIT;
+        this(DEFAULT_SEEK_BACK_LIMIT);
     }
 
     public ConstantSwitchSeekBack(int seekBackLimit) {
