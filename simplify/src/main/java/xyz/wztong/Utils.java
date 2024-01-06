@@ -63,6 +63,9 @@ public class Utils {
         addMethod("Landroid/app/Activity;->getApplication()Landroid/app/Application;");
     }
 
+    public static void init() {
+    }
+
     public static void print(String str) {
         System.err.println("=> " + str);
         System.err.flush();
