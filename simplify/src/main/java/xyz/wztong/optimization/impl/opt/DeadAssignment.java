@@ -1,11 +1,11 @@
-package xyz.wztong.optimization.impl;
+package xyz.wztong.optimization.impl.opt;
 
 import org.cf.simplify.ExecutionGraphManipulator;
-import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.opcode.APutOp;
 import org.cf.smalivm.opcode.InvokeOp;
+import org.cf.smalivm.opcode.Op;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
@@ -14,45 +14,35 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class DeadFunctionResult implements Optimization.ReOptimize {
+// TODO
+public class DeadAssignment implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var validAddresses = getValidAddresses(manipulator, address -> {
             if (!manipulator.wasAddressReached(address)) {
                 return false;
             }
-            InvokeOp op;
-            if (!(manipulator.getOp(address) instanceof InvokeOp invokeOp)) {
-                return false;
-            } else {
-                op = invokeOp;
-            }
-            var instruction = manipulator.getInstruction(address);
-            if (instruction == null) {
+            var mState = manipulator.getNodePile(address).get(0).getContext().getMethodState();
+            Set<Integer> assigned = getNormalRegistersAssigned(mState);
+            if (assigned.isEmpty()) {
+                // Has no assignments at all
                 return false;
             }
-            String returnType = op.getReturnType();
-            if ("V".equals(returnType)) {
+            Op op = manipulator.getOp(address);
+            if (op == null) {
                 return false;
-            }
-            var nextInstruction = manipulator.getInstruction(address + instruction.getCodeUnits());
-            if (nextInstruction == null) {
-                return false;
-            }
-            if (nextInstruction.getOpcode().name.startsWith("move-result")) {
-                return false;
-            }
-            // If a function has no side effect and the result is ignored, we can delete it (for safety, add static limit)
-            if (op.getSideEffectLevel().getValue() == SideEffect.Level.NONE.getValue() && op.getMethod().isStatic()) {
-                return true;
             }
             if (op.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
                 return false;
             }
-            var mState = manipulator.getNodePile(address).get(0).getContext().getMethodState();
-            var assigned = getNormalRegistersAssigned(mState);
-            // Result may not be used, but assignments *are* used
-            return assigned.isEmpty() || !isAnyRegisterUsed(address, assigned, manipulator);
+            if (op instanceof InvokeOp) {
+                String returnType = ((InvokeOp) op).getReturnType();
+                if (!"V".equals(returnType)) {
+                    // Handled by dead result
+                    return false;
+                }
+            }
+            return !isAnyRegisterUsed(address, assigned, manipulator);
         });
         validAddresses.forEach(address -> {
             print(manipulator.getOp(address));

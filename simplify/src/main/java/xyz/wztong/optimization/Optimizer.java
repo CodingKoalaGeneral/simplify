@@ -3,7 +3,11 @@ package xyz.wztong.optimization;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionGraph;
 import xyz.wztong.Utils;
-import xyz.wztong.optimization.impl.*;
+import xyz.wztong.optimization.impl.exec.ConstantSwitchSeekBack;
+import xyz.wztong.optimization.impl.exec.MergeMultipleGoto;
+import xyz.wztong.optimization.impl.exec.SwitchThenGoto;
+import xyz.wztong.optimization.impl.exec.UnreachableSwitchBranch;
+import xyz.wztong.optimization.impl.opt.*;
 
 import java.util.HashSet;
 import java.util.LinkedList;

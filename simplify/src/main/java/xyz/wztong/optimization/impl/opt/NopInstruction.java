@@ -1,4 +1,4 @@
-package xyz.wztong.optimization.impl;
+package xyz.wztong.optimization.impl.opt;
 
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.jf.dexlib2.Opcode;
