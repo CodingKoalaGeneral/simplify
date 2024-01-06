@@ -77,23 +77,24 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             for (var validNodeWithSwitchAddress : validNodesWithSwitchAddress) {
                 var node = validNodeWithSwitchAddress.getKey();
                 var targetAddress = validNodeWithSwitchAddress.getValue();
-                var aNode = new AtomicReference<>(node);
                 var sideEffectRegisters = new TIntHashSet();
                 var sideEffectHappened = new AtomicBoolean(false);
                 var constRegister = new AtomicInteger(switchRegister);
                 var sideEffectNodes = new LinkedList<ExecutionNode>();
+                sideEffectNodes.add(node);
                 NextSeekBack:
                 for (int i = 0; i < seekBackLimit; i++) {
-                    var updateResult = updateParent(aNode, constRegister, sideEffectHappened, sideEffectRegisters, sideEffectNodes);
+                    var updateResult = updateParent(node, constRegister, sideEffectHappened, sideEffectRegisters, sideEffectNodes);
                     switch (updateResult) {
                         case NOT_FOUND -> {
                             continue NextSwitch;
                         }
                         case UNKNOWN -> throw new IllegalStateException("Unknown structure for parent finding");
                         case TERMINATE -> {
-                            sideEffectNodes.addFirst(aNode.get());
+                            sideEffectNodes.addFirst(node.getParent());
                             break NextSeekBack;
                         }
+                        case SEEK_BACK -> node = node.getParent();
                     }
                 }
                 if (sideEffectNodes.isEmpty()) {
@@ -105,7 +106,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     var testNodeAddress = testNode.getAddress();
                     var useThisNode = sideEffectRegisters.forEach(register -> {
                         var consensus = manipulator.getRegisterConsensus(testNodeAddress, register);
-                        return consensus == null || !consensus.isUnknown();
+                        return consensus != null && consensus.isKnown();
                     });
                     if (useThisNode) {
                         from = testNodeAddress;
@@ -130,8 +131,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         TERMINATE, SEEK_BACK, NOT_FOUND, UNKNOWN
     }
 
-    private static ConstantParentStatus updateParent(AtomicReference<ExecutionNode> node, AtomicInteger constRegister, AtomicBoolean sideEffectHappened, TIntHashSet sideEffectRegisters, LinkedList<ExecutionNode> sideEffectNodes) {
-        var currentNode = node.get();
+    private static ConstantParentStatus updateParent(ExecutionNode currentNode, AtomicInteger constRegister, AtomicBoolean sideEffectHappened, TIntHashSet sideEffectRegisters, LinkedList<ExecutionNode> sideEffectNodes) {
         var parentNode = currentNode.getParent();
         var currentOp = currentNode.getOp();
         if (parentNode == null) {
@@ -145,14 +145,12 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         }
         if (parentOp instanceof GotoOp) {
             // Goto has no side effect, all resgisters keeps the same
-            node.set(parentNode);
             return ConstantParentStatus.SEEK_BACK;
         } else if (parentOp instanceof ConstOp constOp) {
             var destRegister = constOp.getDestRegister();
             if (constRegister.get() == destRegister) {
                 return ConstantParentStatus.TERMINATE;
             }
-            node.set(parentNode);
             if (sideEffectRegisters.contains(destRegister)) {
                 sideEffectRegisters.remove(destRegister);
                 return ConstantParentStatus.SEEK_BACK;
@@ -175,7 +173,6 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 // Stop here without update reference
                 return ConstantParentStatus.TERMINATE;
             }
-            node.set(parentNode);
             return ConstantParentStatus.SEEK_BACK;
         } else if (parentOp instanceof MoveOp moveOp) {
             var fromRegister = moveOp.getTargetRegister();
@@ -193,7 +190,6 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         // NOTE: No need to check if source is constant
                         sideEffectRegisters.add(moveOp.getTargetRegister());
                         sideEffectRegisters.remove(toRegister);
-                        node.set(parentNode);
                         return ConstantParentStatus.SEEK_BACK;
                     } else {
                         // move(-object) to, from
@@ -219,7 +215,6 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     }
                     if (sideEffectRegisters.contains(toRegister)) {
                         // move-result(-object) will handle in InvokeOp, check and pass to its parent
-                        node.set(parentNode);
                         return ConstantParentStatus.SEEK_BACK;
                     } else {
                         return ConstantParentStatus.TERMINATE;
