@@ -10,6 +10,7 @@ import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.opcode.*;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.MethodLocation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
@@ -182,10 +183,13 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
     private BuilderInstruction cloneBuilderInstruction(ExecutionGraph graph, BuilderInstruction instruction) {
         try {
-            var node = graph.getNodePile(graph.getAddresses()[0]).get(0);
+            var fLocationToNodePile = ExecutionGraph.class.getDeclaredField("locationToNodePile");
+            fLocationToNodePile.setAccessible(true);
+            Map<MethodLocation, List<ExecutionNode>> locationToNodePile = Utils.cast(fLocationToNodePile.get(graph));
+            var node = locationToNodePile.values().stream().filter(nodes -> nodes.size() > 1).map(nodes->nodes.get(1)).findAny().orElseThrow();
             var fHeap = ExecutionContext.class.getDeclaredField("heap");
             fHeap.setAccessible(true);
-            var heap = fHeap.get(Objects.requireNonNull(node).getContext());
+            var heap = fHeap.get(node.getContext());
             var cHeap = Class.forName("org.cf.smalivm.context.Heap");
             var fCloner = cHeap.getDeclaredField("cloner");
             fCloner.setAccessible(true);
