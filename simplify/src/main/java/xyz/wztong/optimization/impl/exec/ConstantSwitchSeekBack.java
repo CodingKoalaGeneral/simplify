@@ -4,6 +4,8 @@ import gnu.trove.map.TIntIntMap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.cf.simplify.ExecutionGraphManipulator;
+import org.cf.smalivm.context.ExecutionContext;
+import org.cf.smalivm.context.ExecutionGraph;
 import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.opcode.*;
 import org.jf.dexlib2.Opcode;
@@ -165,16 +167,39 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 var sideEffectNode = sideEffectNodes.removeFirst();
                 var sideEffectOp = sideEffectNode.getOp();
                 var sideEffectInstruction = sideEffectOp.getInstruction();
-                manipulator.addInstruction(from + insertLength, sideEffectInstruction);
+                // NOTE: Necessary to clone an instance of BuilderInstruction
+                var newSideEffectInstruction = cloneBuilderInstruction(manipulator, sideEffectInstruction);
+                manipulator.addInstruction(from + insertLength, newSideEffectInstruction);
                 insertLength += sideEffectInstruction.getCodeUnits();
             }
-            gotoInstruction.getCodeUnits();
-            manipulator.addInstruction(from, gotoInstruction);
+            manipulator.addInstruction(from + insertLength, gotoInstruction);
             // After inserting an instruction, all offsets need to be re-caculated
             int finalInsertLength = insertLength;
             positions.stream().filter(impactNode -> impactNode.to > from).forEach(impactNode -> impactNode.to += finalInsertLength);
         }
         return jumpTable.size();
+    }
+
+    private BuilderInstruction cloneBuilderInstruction(ExecutionGraph graph, BuilderInstruction instruction) {
+        try {
+            var node = graph.getNodePile(graph.getAddresses()[0]).get(0);
+            var fHeap = ExecutionContext.class.getDeclaredField("heap");
+            fHeap.setAccessible(true);
+            var heap = fHeap.get(Objects.requireNonNull(node).getContext());
+            var cHeap = Class.forName("org.cf.smalivm.context.Heap");
+            var fCloner = cHeap.getDeclaredField("cloner");
+            fCloner.setAccessible(true);
+            var cloner = fCloner.get(heap);
+            var cCloner = Class.forName("com.rits.cloning.Cloner");
+            var mDeepClone = cCloner.getDeclaredMethod("deepClone", Object.class);
+            var newInstruction = (BuilderInstruction) mDeepClone.invoke(cloner, instruction);
+            var fLocation = BuilderInstruction.class.getDeclaredField("location");
+            fLocation.setAccessible(true);
+            fLocation.set(newInstruction, null);
+            return newInstruction;
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to clone builderInstruction", e);
+        }
     }
 
     private enum ConstantParentStatus {
