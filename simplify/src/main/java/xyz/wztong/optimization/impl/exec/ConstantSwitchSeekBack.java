@@ -4,13 +4,10 @@ import gnu.trove.map.TIntIntMap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.cf.simplify.ExecutionGraphManipulator;
-import org.cf.smalivm.context.ExecutionContext;
-import org.cf.smalivm.context.ExecutionGraph;
 import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.opcode.*;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderInstruction;
-import org.jf.dexlib2.builder.MethodLocation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
@@ -169,7 +166,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 var sideEffectOp = sideEffectNode.getOp();
                 var sideEffectInstruction = sideEffectOp.getInstruction();
                 // NOTE: Necessary to clone an instance of BuilderInstruction
-                var newSideEffectInstruction = cloneBuilderInstruction(manipulator, sideEffectInstruction);
+                var newSideEffectInstruction = cloneBuilderInstruction(sideEffectInstruction);
                 manipulator.addInstruction(from + insertLength, newSideEffectInstruction);
                 insertLength += sideEffectInstruction.getCodeUnits();
             }
@@ -181,22 +178,9 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         return jumpTable.size();
     }
 
-    private BuilderInstruction cloneBuilderInstruction(ExecutionGraph graph, BuilderInstruction instruction) {
+    private BuilderInstruction cloneBuilderInstruction(BuilderInstruction instruction) {
         try {
-            var fLocationToNodePile = ExecutionGraph.class.getDeclaredField("locationToNodePile");
-            fLocationToNodePile.setAccessible(true);
-            Map<MethodLocation, List<ExecutionNode>> locationToNodePile = Utils.cast(fLocationToNodePile.get(graph));
-            var node = locationToNodePile.values().stream().filter(nodes -> nodes.size() > 1).map(nodes->nodes.get(1)).findAny().orElseThrow();
-            var fHeap = ExecutionContext.class.getDeclaredField("heap");
-            fHeap.setAccessible(true);
-            var heap = fHeap.get(node.getContext());
-            var cHeap = Class.forName("org.cf.smalivm.context.Heap");
-            var fCloner = cHeap.getDeclaredField("cloner");
-            fCloner.setAccessible(true);
-            var cloner = fCloner.get(heap);
-            var cCloner = Class.forName("com.rits.cloning.Cloner");
-            var mDeepClone = cCloner.getDeclaredMethod("deepClone", Object.class);
-            var newInstruction = (BuilderInstruction) mDeepClone.invoke(cloner, instruction);
+            BuilderInstruction newInstruction = Utils.deepClone(instruction);
             var fLocation = BuilderInstruction.class.getDeclaredField("location");
             fLocation.setAccessible(true);
             fLocation.set(newInstruction, null);

@@ -128,6 +128,30 @@ public class Utils {
         return (T) obj;
     }
 
+    private static Object cloner;
+
+    public static <T> T deepClone(Object object) {
+        if (cloner == null) {
+            try {
+                var cCloner = Class.forName("com.rits.cloning.Cloner");
+                var ccCloner = cCloner.getConstructor();
+                ccCloner.setAccessible(true);
+                cloner = ccCloner.newInstance();
+
+            } catch (Exception e) {
+                throw new RuntimeException("Unable to init cloner", e);
+            }
+        }
+        try {
+            var cCloner = Class.forName("com.rits.cloning.Cloner");
+            var mDeepClone = cCloner.getDeclaredMethod("deepClone", Object.class);
+            mDeepClone.setAccessible(true);
+            return cast(mDeepClone.invoke(cloner, object));
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to clone", e);
+        }
+    }
+
     private static void addMethod(String signature) {
         MethodEmulator.addMethod(signature, getMethod(signature));
     }
