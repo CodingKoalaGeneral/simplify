@@ -190,11 +190,11 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
             }
         }
 
-        int find(int x) {
-            if (parent[x] != x) {
-                parent[x] = find(parent[x]);
+        int find(int o) {
+            if (parent[o] != o) {
+                parent[o] = find(parent[o]);
             }
-            return parent[x];
+            return parent[o];
         }
 
         void union(int x, int y) {
