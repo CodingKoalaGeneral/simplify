@@ -4,6 +4,7 @@ import org.cf.simplify.ExecutionGraphManipulator;
 import org.jf.dexlib2.Opcode;
 import xyz.wztong.optimization.Optimization;
 
+@Optimization.Original
 public class NopInstruction implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {

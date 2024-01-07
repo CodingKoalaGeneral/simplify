@@ -6,6 +6,7 @@ import org.jf.dexlib2.iface.instruction.OneRegisterInstruction;
 import xyz.wztong.optimization.ConstantBuilder;
 import xyz.wztong.optimization.Optimization;
 
+@Optimization.Original
 public class ConstantPropagation implements Optimization.ReOptimize {
 
     @Override

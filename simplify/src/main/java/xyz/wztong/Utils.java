@@ -1,5 +1,6 @@
 package xyz.wztong;
 
+import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.VirtualMachineFactory;
@@ -10,11 +11,14 @@ import org.cf.smalivm.emulate.EmulatedMethod;
 import org.cf.smalivm.emulate.MethodEmulator;
 import org.cf.smalivm.exception.VirtualMachineException;
 import org.cf.util.ClassNameUtils;
+import org.jf.dexlib2.builder.BuilderTryBlock;
 import org.jf.dexlib2.writer.io.FileDataStore;
 import xyz.wztong.optimization.Optimizer;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 public class Utils {
@@ -164,4 +168,33 @@ public class Utils {
         }
     }
 
+    public static HashSet<Object> getTryHandlerAddresses(ExecutionGraphManipulator manipulator) {
+        var handlerAddresses = new HashSet<>();
+        int[] allAddresses = manipulator.getAddresses();
+        Arrays.sort(allAddresses);
+        int highestAddress = allAddresses[allAddresses.length - 1];
+        for (BuilderTryBlock tryBlock : manipulator.getTryBlocks()) {
+            var handlers = tryBlock.getExceptionHandlers();
+            for (var handler : handlers) {
+                int address = handler.getHandlerCodeAddress();
+                var instruction = manipulator.getInstruction(address);
+                if (instruction == null) {
+                    throw new IllegalStateException("It's a valid address, but without instruction?");
+                }
+                while (address < highestAddress) {
+                    // Add all instructions until return, goto, etc.
+                    handlerAddresses.add(address);
+                    address += instruction.getCodeUnits();
+                    instruction = manipulator.getInstruction(address);
+                    if (instruction == null) {
+                        throw new IllegalStateException("It's a handler address, it should contains an instruction!");
+                    }
+                    if (!instruction.getOpcode().canContinue()) {
+                        break;
+                    }
+                }
+            }
+        }
+        return handlerAddresses;
+    }
 }

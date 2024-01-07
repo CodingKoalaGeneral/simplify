@@ -5,41 +5,14 @@ import org.cf.smalivm.opcode.NopOp;
 import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
 import org.jf.dexlib2.Opcode;
-import org.jf.dexlib2.builder.BuilderTryBlock;
+import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
-import java.util.Arrays;
-import java.util.HashSet;
-
+@Optimization.Original
 public class UnreachableInstruction implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var handlerAddresses = new HashSet<>();
-        int[] allAddresses = manipulator.getAddresses();
-        Arrays.sort(allAddresses);
-        int highestAddress = allAddresses[allAddresses.length - 1];
-        for (BuilderTryBlock tryBlock : manipulator.getTryBlocks()) {
-            var handlers = tryBlock.getExceptionHandlers();
-            for (var handler : handlers) {
-                int address = handler.getHandlerCodeAddress();
-                var instruction = manipulator.getInstruction(address);
-                if (instruction == null) {
-                    throw new IllegalStateException("It's a valid address, but without instruction?");
-                }
-                while (address < highestAddress) {
-                    // Add all instructions until return, goto, etc.
-                    handlerAddresses.add(address);
-                    address += instruction.getCodeUnits();
-                    instruction = manipulator.getInstruction(address);
-                    if (instruction == null) {
-                        throw new IllegalStateException("It's a handler address, it should contains an instruction!");
-                    }
-                    if (!instruction.getOpcode().canContinue()) {
-                        break;
-                    }
-                }
-            }
-        }
+        var handlerAddresses = Utils.getTryHandlerAddresses(manipulator);
         var validAddresses = getValidAddresses(manipulator, address -> {
             if (manipulator.wasAddressReached(address)) {
                 return false;
