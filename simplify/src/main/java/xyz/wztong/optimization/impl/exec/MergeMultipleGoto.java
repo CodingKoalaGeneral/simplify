@@ -3,7 +3,11 @@ package xyz.wztong.optimization.impl.exec;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.opcode.GotoOp;
 import org.cf.smalivm.opcode.Op;
-import xyz.wztong.Utils;
+import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.*;
@@ -93,7 +97,37 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                 filterOps.remove(currentRemoveOp);
             }
         }
-        Utils.addGotos(this, manipulator, positions);
+        positions.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
+        var impl = manipulator.getMethod().getImplementation();
+        for (int i = 0; i < positions.size(); i++) {
+            var table = positions.get(i);
+            var from = table.getKey();
+            var to = table.getValue();
+            var toLabel = impl.newLabelForAddress(to);
+            BuilderInstruction gotoInstruction;
+            var offsetAbs = Math.abs(to - from);
+            if (offsetAbs < 0x7f) {
+                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
+            } else if (offsetAbs < 0x7fff) {
+                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
+            } else {
+                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
+            }
+            print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
+            manipulator.addInstruction(from, gotoInstruction);
+            // After inserting an instruction, all offsets need to be re-caculated
+            var insertLength = gotoInstruction.getCodeUnits();
+            for (int j = 0; j < positions.size(); j++) {
+                var impactTable = positions.get(j);
+                // From is always smaller than modifing instruction's position
+                var impactFrom = impactTable.getKey();
+                var impactTo = impactTable.getValue();
+                if (impactTo > from) {
+                    var newTo = impactTo + insertLength;
+                    positions.set(j, Map.entry(impactFrom, newTo));
+                }
+            }
+        }
         return positions.size();
     }
 
