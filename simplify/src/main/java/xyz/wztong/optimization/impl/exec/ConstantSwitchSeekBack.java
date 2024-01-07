@@ -5,6 +5,11 @@ import gnu.trove.set.hash.TIntHashSet;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.opcode.*;
+import org.jf.dexlib2.Opcode;
+import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
+import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
@@ -25,9 +30,21 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         this.seekBackLimit = seekBackLimit;
     }
 
+    private static final class JumpNode {
+        private final int from;
+        private int to;
+        private final Deque<ExecutionNode> sideEffectNodes;
+
+        private JumpNode(int from, int to, Deque<ExecutionNode> sideEffectNodes) {
+            this.from = from;
+            this.to = to;
+            this.sideEffectNodes = sideEffectNodes;
+        }
+    }
+
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var jumpTable = new ArrayList<Map.Entry<Integer, Integer>>();
+        var jumpTable = new HashMap<Integer, JumpNode>();
         for (int address : manipulator.getAddresses()) {
             if (!manipulator.wasAddressReached(address)) {
                 continue;
@@ -97,28 +114,66 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         case SEEK_BACK -> node = node.getParent();
                     }
                 }
+                sideEffectNodes.removeLast();
                 if (sideEffectNodes.isEmpty()) {
                     continue;
                 }
                 do {
-                    var testNode = sideEffectNodes.pop();
+                    var testNode = sideEffectNodes.removeFirst();
                     var testNodeAddress = testNode.getAddress();
                     var useThisNode = sideEffectRegisters.forEach(register -> {
                         var consensus = manipulator.getRegisterConsensus(testNodeAddress, register);
                         return consensus != null && consensus.isKnown();
                     });
                     if (useThisNode) {
-                        if (jumpTable.stream().anyMatch(table -> table.getKey() == testNodeAddress && !targetAddress.equals(table.getValue()))) {
+                        var newNode = new JumpNode(testNodeAddress, targetAddress, sideEffectNodes);
+                        var oldNode = jumpTable.put(testNodeAddress, newNode);
+                        if (oldNode != null && oldNode.to != targetAddress) {
                             throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
                         }
-                        jumpTable.add(Map.entry(testNodeAddress, targetAddress));
                         break;
                     }
                 } while (!sideEffectNodes.isEmpty());
             }
         }
         // Adding instructions from bottom
-        Utils.addGotos(this, manipulator, jumpTable);
+        var positions = new ArrayList<>(jumpTable.values());
+        positions.sort((o1, o2) -> Integer.compare(o2.from, o1.from));
+        var impl = manipulator.getMethod().getImplementation();
+        for (int i = 0; i < positions.size(); i++) {
+            var node = positions.get(i);
+            var from = node.from;
+            var to = node.to;
+            var sideEffectNodes = node.sideEffectNodes;
+            var toLabel = impl.newLabelForAddress(to);
+            BuilderInstruction gotoInstruction;
+            var offsetAbs = Math.abs(to - from);
+            if (offsetAbs < 0x7f) {
+                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
+            } else if (offsetAbs < 0x7fff) {
+                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
+            } else {
+                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
+            }
+            print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
+            manipulator.addInstruction(from, gotoInstruction);
+            var insertLength = gotoInstruction.getCodeUnits();
+            while (!sideEffectNodes.isEmpty()) {
+                var sideEffectNode = sideEffectNodes.removeLast();
+                var sideEffectOp = sideEffectNode.getOp();
+                var sideEffectInstruction = sideEffectOp.getInstruction();
+                insertLength += sideEffectInstruction.getCodeUnits();
+                manipulator.addInstruction(from, sideEffectInstruction);
+            }
+            // After inserting an instruction, all offsets need to be re-caculated
+            for (var impactNode : positions) {
+                // From is always smaller than modifing instruction's position
+                var impactTo = impactNode.to;
+                if (impactTo > from) {
+                    impactNode.to = impactTo + insertLength;
+                }
+            }
+        }
         return jumpTable.size();
     }
 
@@ -157,10 +212,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         // TODO
         if (parentOp instanceof InvokeOp invokeOp) {
             // If there is a move-result(-object) call, the invoke result is ensured to be constant, but sideEffectRegisters should be updated
-            // If there is not a move-result(-object) call, the invoke is ensured have side effect low enough
             if (currentOp instanceof MoveOp moveOp && getMoveTypeString(moveOp).equals("RESULT")) {
                 sideEffectRegisters.remove(moveOp.getToRegister());
             }
+            // If there is not a move-result(-object) call, the invoke is ensured have side effect low enough
             var parameterRegisters = invokeOp.getParameterRegisters();
             var mState = parentNode.getContext().getMethodState();
             var parameterHeaps = Arrays.stream(parameterRegisters).mapToObj(mState::peekRegister).filter(Objects::nonNull).filter(heap -> heap.isKnown() && heap.isImmutable()).toList();
