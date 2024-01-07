@@ -73,11 +73,6 @@ public class UnreachableInstruction implements Optimization.ReOptimize {
             print(op);
             if (op instanceof SwitchOp switchOp) {
                 var payloadAddress = switchOp.getChildren()[0].getCodeAddress();
-                // TODO: Maybe a payload will share between switches?
-                var switchPayloadOp = manipulator.getOp(payloadAddress);
-                if (!(switchPayloadOp instanceof SwitchPayloadOp)) {
-                    throw new IllegalStateException("Target of a switch op is not a payload op?");
-                }
                 impl.removeInstruction(manipulator.getLocation(Math.max(address, payloadAddress)).getIndex());
                 impl.removeInstruction(manipulator.getLocation(Math.min(address, payloadAddress)).getIndex());
                 manipulatorRebuildGraph(manipulator);
