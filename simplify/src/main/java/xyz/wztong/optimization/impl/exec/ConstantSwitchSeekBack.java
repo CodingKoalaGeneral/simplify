@@ -143,6 +143,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         var positions = new ArrayList<>(jumpTable.values());
         // Adding instructions from bottom, reverse order
         positions.sort((o1, o2) -> Integer.compare(o2.from, o1.from));
+        @UnsafeManipulator
         var impl = manipulator.getMethod().getImplementation();
         for (var node : positions) {
             var from = node.from;

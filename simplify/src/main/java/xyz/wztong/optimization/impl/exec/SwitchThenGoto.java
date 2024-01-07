@@ -67,6 +67,7 @@ public class SwitchThenGoto implements Optimization.ReExecute {
             }
             var switchPayloadElement = ((BuilderSparseSwitchPayload) switchPayloadOp.getInstruction()).getSwitchElements();
             var newSwitchPayloadElement = new ArrayList<SwitchLabelElement>();
+            @UnsafeManipulator
             var impl = manipulator.getMethod().getImplementation();
             switchPayloadElement.forEach(element -> {
                 var targetAddress = element.getTarget().getCodeAddress();

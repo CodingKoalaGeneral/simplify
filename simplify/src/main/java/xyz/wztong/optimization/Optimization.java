@@ -21,6 +21,9 @@ public interface Optimization {
     @interface Original {
     }
 
+    @interface UnsafeManipulator {
+    }
+
     interface ReOptimize extends Optimization {
         default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {
             try {

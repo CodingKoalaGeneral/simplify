@@ -98,6 +98,7 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
             }
         }
         positions.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
+        @UnsafeManipulator
         var impl = manipulator.getMethod().getImplementation();
         for (int i = 0; i < positions.size(); i++) {
             var table = positions.get(i);

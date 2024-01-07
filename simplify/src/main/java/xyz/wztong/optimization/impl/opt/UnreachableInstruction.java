@@ -40,6 +40,7 @@ public class UnreachableInstruction implements Optimization.ReOptimize {
             }
             return true;
         });
+        @UnsafeManipulator
         var impl = manipulator.getMethod().getImplementation();
         validAddresses.forEach(address -> {
             var op = manipulator.getOp(address);
