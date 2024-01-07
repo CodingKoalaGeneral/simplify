@@ -161,16 +161,16 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             }
             print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
             var insertLength = 0;
+            manipulator.addInstruction(from, gotoInstruction);
             while (!sideEffectNodes.isEmpty()) {
-                var sideEffectNode = sideEffectNodes.removeFirst();
+                var sideEffectNode = sideEffectNodes.removeLast();
                 var sideEffectOp = sideEffectNode.getOp();
                 var sideEffectInstruction = sideEffectOp.getInstruction();
                 // NOTE: Necessary to clone an instance of BuilderInstruction
                 var newSideEffectInstruction = cloneBuilderInstruction(sideEffectInstruction);
-                manipulator.addInstruction(from + insertLength, newSideEffectInstruction);
+                manipulator.addInstruction(from, newSideEffectInstruction);
                 insertLength += sideEffectInstruction.getCodeUnits();
             }
-            manipulator.addInstruction(from + insertLength, gotoInstruction);
             // After inserting an instruction, all offsets need to be re-caculated
             int finalInsertLength = insertLength;
             positions.stream().filter(impactNode -> impactNode.to > from).forEach(impactNode -> impactNode.to += finalInsertLength);
