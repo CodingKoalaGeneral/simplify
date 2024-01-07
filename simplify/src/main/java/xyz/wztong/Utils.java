@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+@SuppressWarnings("unused")
 public class Utils {
     public static final String BASE_EMULATE_PACKAGE = "xyz.wztong.emulate";
     public static final String BASE_TYPE_PACKAGE = "xyz.wztong.type";
