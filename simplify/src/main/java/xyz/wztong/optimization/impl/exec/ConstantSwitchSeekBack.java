@@ -1,6 +1,7 @@
 package xyz.wztong.optimization.impl.exec;
 
 import gnu.trove.map.TIntIntMap;
+import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.ExecutionNode;
@@ -94,11 +95,12 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 var targetAddress = validNodeWithSwitchAddress.getValue();
                 var sideEffectRegisters = new TIntHashSet();
                 var constRegister = new AtomicInteger(switchRegister);
-                var sideEffectNodes = new LinkedList<ExecutionNode>();
-                sideEffectNodes.addLast(node);
+                var sideEffectNodes = new LinkedList<Map.Entry<ExecutionNode, TIntSet>>();
+                sideEffectNodes.addLast(Map.entry(node, new TIntHashSet(new int[]{switchRegister})));
+                var currentNode = node;
                 NextSeekBack:
                 for (int i = 0; i < seekBackLimit; i++) {
-                    var updateResult = updateParent(node, constRegister, sideEffectRegisters, sideEffectNodes);
+                    var updateResult = updateParent(currentNode, constRegister, sideEffectRegisters, sideEffectNodes);
                     if (sideEffectRegisters.contains(constRegister.get())) {
                         throw new IllegalStateException("Oops, hidden bug triggered");
                     }
@@ -108,25 +110,27 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         }
                         case UNKNOWN -> throw new IllegalStateException("Unknown structure for parent finding");
                         case TERMINATE -> {
-                            sideEffectNodes.addFirst(node.getParent());
+                            sideEffectNodes.addFirst(Map.entry(currentNode.getParent(), new TIntHashSet(sideEffectRegisters)));
                             break NextSeekBack;
                         }
-                        case SEEK_BACK -> node = node.getParent();
+                        case SEEK_BACK -> currentNode = currentNode.getParent();
                     }
                 }
                 sideEffectNodes.removeLast();
                 if (sideEffectNodes.isEmpty()) {
                     continue;
                 }
+                var remainingNodes = new LinkedList<ExecutionNode>();
                 do {
                     var testNode = sideEffectNodes.removeFirst();
-                    var testNodeAddress = testNode.getAddress();
-                    var useThisNode = sideEffectRegisters.forEach(register -> {
+                    var testNodeAddress = testNode.getKey().getAddress();
+                    var useThisNode = testNode.getValue().forEach(register -> {
                         var consensus = manipulator.getRegisterConsensus(testNodeAddress, register);
                         return consensus != null && consensus.isKnown();
                     });
+                    remainingNodes.addLast(testNode.getKey());
                     if (useThisNode) {
-                        var newNode = new JumpNode(testNodeAddress, targetAddress, sideEffectNodes);
+                        var newNode = new JumpNode(testNodeAddress + testNode.getKey().getOp().getInstruction().getCodeUnits(), targetAddress, remainingNodes);
                         var oldNode = jumpTable.put(testNodeAddress, newNode);
                         if (oldNode != null && oldNode.to != targetAddress) {
                             throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
@@ -136,12 +140,11 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 } while (!sideEffectNodes.isEmpty());
             }
         }
-        // Adding instructions from bottom
         var positions = new ArrayList<>(jumpTable.values());
+        // Adding instructions from bottom, reverse order
         positions.sort((o1, o2) -> Integer.compare(o2.from, o1.from));
         var impl = manipulator.getMethod().getImplementation();
-        for (int i = 0; i < positions.size(); i++) {
-            var node = positions.get(i);
+        for (var node : positions) {
             var from = node.from;
             var to = node.to;
             var sideEffectNodes = node.sideEffectNodes;
@@ -156,23 +159,19 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
             }
             print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
-            manipulator.addInstruction(from, gotoInstruction);
-            var insertLength = gotoInstruction.getCodeUnits();
+            var insertLength = 0;
             while (!sideEffectNodes.isEmpty()) {
-                var sideEffectNode = sideEffectNodes.removeLast();
+                var sideEffectNode = sideEffectNodes.removeFirst();
                 var sideEffectOp = sideEffectNode.getOp();
                 var sideEffectInstruction = sideEffectOp.getInstruction();
+                manipulator.addInstruction(from + insertLength, sideEffectInstruction);
                 insertLength += sideEffectInstruction.getCodeUnits();
-                manipulator.addInstruction(from, sideEffectInstruction);
             }
+            gotoInstruction.getCodeUnits();
+            manipulator.addInstruction(from, gotoInstruction);
             // After inserting an instruction, all offsets need to be re-caculated
-            for (var impactNode : positions) {
-                // From is always smaller than modifing instruction's position
-                var impactTo = impactNode.to;
-                if (impactTo > from) {
-                    impactNode.to = impactTo + insertLength;
-                }
-            }
+            int finalInsertLength = insertLength;
+            positions.stream().filter(impactNode -> impactNode.to > from).forEach(impactNode -> impactNode.to += finalInsertLength);
         }
         return jumpTable.size();
     }
@@ -181,7 +180,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         TERMINATE, SEEK_BACK, NOT_FOUND, UNKNOWN
     }
 
-    private static ConstantParentStatus updateParent(ExecutionNode currentNode, AtomicInteger constRegister, TIntHashSet sideEffectRegisters, LinkedList<ExecutionNode> sideEffectNodes) {
+    private static ConstantParentStatus updateParent(ExecutionNode currentNode, AtomicInteger constRegister, TIntSet sideEffectRegisters, Deque<Map.Entry<ExecutionNode, TIntSet>> sideEffectNodes) {
         var parentNode = currentNode.getParent();
         var currentOp = currentNode.getOp();
         if (parentNode == null) {
@@ -204,7 +203,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 return ConstantParentStatus.SEEK_BACK;
             } else {
                 sideEffectRegisters.add(destRegister);
-                sideEffectNodes.addFirst(parentNode);
+                sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
                 return ConstantParentStatus.SEEK_BACK;
             }
         }
@@ -255,7 +254,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                             return ConstantParentStatus.SEEK_BACK;
                         } else {
                             // Should stop here
-                            sideEffectNodes.addFirst(parentNode);
+                            sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
                             return ConstantParentStatus.TERMINATE;
                         }
                     }

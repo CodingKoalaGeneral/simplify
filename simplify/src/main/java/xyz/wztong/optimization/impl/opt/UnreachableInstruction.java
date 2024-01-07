@@ -67,7 +67,7 @@ public class UnreachableInstruction implements Optimization.ReOptimize {
             }
             return true;
         });
-        var implementation = manipulator.getMethod().getImplementation();
+        var impl = manipulator.getMethod().getImplementation();
         validAddresses.forEach(address -> {
             var op = manipulator.getOp(address);
             print(op);
@@ -78,8 +78,8 @@ public class UnreachableInstruction implements Optimization.ReOptimize {
                 if (!(switchPayloadOp instanceof SwitchPayloadOp)) {
                     throw new IllegalStateException("Target of a switch op is not a payload op?");
                 }
-                implementation.removeInstruction(manipulator.getLocation(Math.max(address, payloadAddress)).getIndex());
-                implementation.removeInstruction(manipulator.getLocation(Math.min(address, payloadAddress)).getIndex());
+                impl.removeInstruction(manipulator.getLocation(Math.max(address, payloadAddress)).getIndex());
+                impl.removeInstruction(manipulator.getLocation(Math.min(address, payloadAddress)).getIndex());
                 manipulatorRebuildGraph(manipulator);
             } else if (!(op instanceof SwitchPayloadOp)) {
                 manipulator.removeInstruction(address);

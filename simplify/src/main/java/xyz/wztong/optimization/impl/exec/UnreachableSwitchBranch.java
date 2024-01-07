@@ -4,6 +4,7 @@ import gnu.trove.map.TIntIntMap;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
+import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.SwitchLabelElement;
 import org.jf.dexlib2.builder.instruction.BuilderSparseSwitchPayload;
 import xyz.wztong.optimization.Optimization;
@@ -22,6 +23,7 @@ public class UnreachableSwitchBranch implements Optimization.ReExecute {
 
         });
         int replaced = 0;
+        var impl = manipulator.getMethod().getImplementation();
         NextSwitchOpAddress:
         for (int switchOpAddress : switchOpAddresses) {
             var switchOp = (SwitchOp) manipulator.getOp(switchOpAddress);
@@ -67,8 +69,7 @@ public class UnreachableSwitchBranch implements Optimization.ReExecute {
             var newSwitchPayloadInstruction = new BuilderSparseSwitchPayload(newSwitchPayloadElement);
             replaced += keyToRemove.size();
             print("@" + Integer.toHexString(switchPayloadOp.getAddress()) + " <=X= " + keyToRemove);
-            manipulator.getMethod().getImplementation().replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
-            manipulatorRebuildGraph(manipulator);
+            impl.replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
         }
         return replaced;
     }
