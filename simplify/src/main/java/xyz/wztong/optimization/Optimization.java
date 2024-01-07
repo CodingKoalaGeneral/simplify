@@ -13,9 +13,6 @@ import java.util.stream.IntStream;
 public interface Optimization {
 
     interface ReExecute extends Optimization {
-        default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {
-            throw new IllegalStateException("ReExecute don't need it");
-        }
     }
 
     @interface Original {
@@ -25,17 +22,17 @@ public interface Optimization {
     }
 
     interface ReOptimize extends Optimization {
-        default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {
-            try {
-                var mRebuildGraph = ExecutionGraphManipulator.class.getDeclaredMethod("rebuildGraph");
-                mRebuildGraph.setAccessible(true);
-                mRebuildGraph.invoke(manipulator);
-            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                throw new IllegalStateException("Why I cannot rebuild graph?", e);
-            }
-        }
     }
 
+    default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {
+        try {
+            var mRebuildGraph = ExecutionGraphManipulator.class.getDeclaredMethod("rebuildGraph");
+            mRebuildGraph.setAccessible(true);
+            mRebuildGraph.invoke(manipulator);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            throw new IllegalStateException("Why I cannot rebuild graph?", e);
+        }
+    }
     interface Refactor extends Optimization {
         default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {
             throw new IllegalStateException("Refactor don't need it");
@@ -43,8 +40,6 @@ public interface Optimization {
     }
 
     int perform(ExecutionGraphManipulator manipulator);
-
-    void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator);
 
     default List<Integer> getValidAddresses(ExecutionGraphManipulator manipulator, Predicate<Integer> filter) {
         return IntStream.of(manipulator.getAddresses()).boxed().filter(filter).sorted(Collections.reverseOrder()).toList();
