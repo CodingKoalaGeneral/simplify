@@ -15,7 +15,6 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
@@ -94,29 +93,34 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 var node = validNodeWithSwitchAddress.getKey();
                 var targetAddress = validNodeWithSwitchAddress.getValue();
                 var sideEffectRegisters = new TIntHashSet();
-                var constRegister = new AtomicInteger(switchRegister);
+                var constRegisters = new TIntHashSet();
+                constRegisters.add(switchRegister);
                 var sideEffectNodes = new LinkedList<Map.Entry<ExecutionNode, TIntSet>>();
-                sideEffectNodes.addLast(Map.entry(node, new TIntHashSet(new int[]{switchRegister})));
                 var currentNode = node;
+                var seekBackOrTerminate = false;
                 NextSeekBack:
                 for (int i = 0; i < seekBackLimit; i++) {
-                    var updateResult = updateParent(currentNode, constRegister, sideEffectRegisters, sideEffectNodes);
-                    if (sideEffectRegisters.contains(constRegister.get())) {
+                    var updateResult = updateParent(currentNode, constRegisters, sideEffectRegisters, sideEffectNodes);
+                    if (!constRegisters.forEach(register -> !sideEffectRegisters.contains(register))) {
                         throw new IllegalStateException("Oops, hidden bug triggered");
                     }
                     switch (updateResult) {
-                        case NOT_FOUND -> {
-                            continue NextSwitch;
-                        }
-                        case UNKNOWN -> throw new IllegalStateException("Unknown structure for parent finding");
                         case TERMINATE -> {
-                            sideEffectNodes.addFirst(Map.entry(currentNode.getParent(), new TIntHashSet(sideEffectRegisters)));
-                            break NextSeekBack;
+                            if (seekBackOrTerminate) {
+                                sideEffectNodes.addFirst(Map.entry(currentNode.getParent(), new TIntHashSet(sideEffectRegisters)));
+                                break NextSeekBack;
+                            } else {
+                                continue NextSwitch;
+                            }
                         }
                         case SEEK_BACK -> currentNode = currentNode.getParent();
+                        case SEEK_BACK_OR_TERMINATE -> {
+                            seekBackOrTerminate = true;
+                            currentNode = currentNode.getParent();
+                        }
+                        case UNKNOWN -> throw new IllegalStateException("Unknown structure for parent finding");
                     }
                 }
-                sideEffectNodes.removeLast();
                 if (sideEffectNodes.isEmpty()) {
                     continue;
                 }
@@ -191,10 +195,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
     }
 
     private enum ConstantParentStatus {
-        TERMINATE, SEEK_BACK, NOT_FOUND, UNKNOWN
+        TERMINATE, SEEK_BACK, UNKNOWN, SEEK_BACK_OR_TERMINATE
     }
 
-    private static ConstantParentStatus updateParent(ExecutionNode currentNode, AtomicInteger constRegister, TIntSet sideEffectRegisters, Deque<Map.Entry<ExecutionNode, TIntSet>> sideEffectNodes) {
+    private static ConstantParentStatus updateParent(ExecutionNode currentNode, TIntSet constRegisters, TIntSet sideEffectRegisters, Deque<Map.Entry<ExecutionNode, TIntSet>> sideEffectNodes) {
         var parentNode = currentNode.getParent();
         var currentOp = currentNode.getOp();
         if (parentNode == null) {
@@ -203,92 +207,108 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         }
         var parentOp = parentNode.getOp();
         if (parentOp.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
-            return ConstantParentStatus.NOT_FOUND;
+            return ConstantParentStatus.TERMINATE;
         }
+        if (constRegisters.size() != 1) {
+            return ConstantParentStatus.UNKNOWN;
+        }
+
         if (parentOp instanceof GotoOp) {
             return ConstantParentStatus.SEEK_BACK;
         }
         if (parentOp instanceof ConstOp constOp) {
             var destRegister = constOp.getDestRegister();
-            if (constRegister.get() == destRegister) {
-                return ConstantParentStatus.TERMINATE;
-            } else if (sideEffectRegisters.contains(destRegister)) {
-                sideEffectRegisters.remove(destRegister);
-                return ConstantParentStatus.SEEK_BACK;
+            if (constRegisters.contains(destRegister)) {
+                constRegisters.remove(destRegister);
+                if (constRegisters.isEmpty()) {
+                    return ConstantParentStatus.TERMINATE;
+                } else {
+                    // TODO
+                    // sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
+                    return ConstantParentStatus.UNKNOWN;
+                }
             } else {
                 sideEffectRegisters.add(destRegister);
                 sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
-                return ConstantParentStatus.SEEK_BACK;
+                return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
             }
         }
 
-        // TODO
-        if (parentOp instanceof InvokeOp invokeOp) {
-            // If there is a move-result(-object) call, the invoke result is ensured to be constant, but sideEffectRegisters should be updated
-            if (currentOp instanceof MoveOp moveOp && getMoveTypeString(moveOp).equals("RESULT")) {
-                sideEffectRegisters.remove(moveOp.getToRegister());
-            }
-            // If there is not a move-result(-object) call, the invoke is ensured have side effect low enough
-            var parameterRegisters = invokeOp.getParameterRegisters();
-            var mState = parentNode.getContext().getMethodState();
-            var parameterHeaps = Arrays.stream(parameterRegisters).mapToObj(mState::peekRegister).filter(Objects::nonNull).filter(heap -> heap.isKnown() && heap.isImmutable()).toList();
-            if (parameterHeaps.size() != parameterRegisters.length) {
-                // Stop here without update reference
-                return ConstantParentStatus.TERMINATE;
-            }
-            return ConstantParentStatus.SEEK_BACK;
-        }
-        // TODO
         if (parentOp instanceof MoveOp moveOp) {
             var fromRegister = moveOp.getTargetRegister();
             int toRegister = moveOp.getToRegister();
             var moveType = getMoveTypeString(moveOp);
             switch (moveType) {
-                case "EXCEPTION" -> {
-                    // MoveType(EXCEPTION) will have side effects
-                    return ConstantParentStatus.NOT_FOUND;
-                }
                 case "REGISTER" -> {
-                    if (sideEffectRegisters.contains(toRegister)) {
-                        // move(-object) const-to, from
-                        // Set the tracking const regster to the source
-                        // NOTE: No need to check if source is constant
-                        sideEffectRegisters.add(moveOp.getTargetRegister());
-                        sideEffectRegisters.remove(toRegister);
-                        return ConstantParentStatus.SEEK_BACK;
-                    } else {
-                        // move(-object) to, from
-                        var parentTo = parentNode.getContext().getMethodState().peekRegister(toRegister);
-                        if (parentTo == null) {
-                            return ConstantParentStatus.UNKNOWN;
-                        }
-                        // We passed a register sign which can cause side effects
-                        if (parentTo.isKnown()) {
-                            sideEffectRegisters.add(fromRegister);
+                    if (constRegisters.contains(toRegister)) {
+                        constRegisters.remove(toRegister);
+                        constRegisters.add(fromRegister);
+                        if (constRegisters.size() == 1) {
                             return ConstantParentStatus.SEEK_BACK;
                         } else {
-                            // Should stop here
-                            sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
-                            return ConstantParentStatus.TERMINATE;
+                            return ConstantParentStatus.UNKNOWN;
                         }
+                    } else {
+                        sideEffectRegisters.remove(toRegister);
+                        sideEffectRegisters.add(fromRegister);
+                        sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
+                        return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
                     }
                 }
                 case "RESULT" -> {
                     var possibleInvokeOp = parentNode.getParent().getOp();
-                    if (!(possibleInvokeOp instanceof InvokeOp)) {
+                    if (possibleInvokeOp instanceof InvokeOp) {
+                        return ConstantParentStatus.SEEK_BACK;
+                    } else {
                         return ConstantParentStatus.UNKNOWN;
                     }
-                    if (constRegister.get() == toRegister) {
+                }
+                case "EXCEPTION" -> {
+                    // MoveType(EXCEPTION) will have side effects
+                    return ConstantParentStatus.TERMINATE;
+                }
+                default -> throw new IllegalStateException("Unkown move type: " + moveType);
+            }
+        }
+
+        // TODO
+        if (parentOp instanceof InvokeOp invokeOp) {
+            var parameterRegisters = invokeOp.getParameterRegisters();
+            var invokeMethodState = parentNode.getContext().getMethodState();
+            if (currentOp instanceof MoveOp moveOp && getMoveTypeString(moveOp).equals("RESULT")) {
+                var toRegister = moveOp.getToRegister();
+                var knownParameterRegisters = Arrays.stream(parameterRegisters).filter(register -> {
+                    var registerHeap = invokeMethodState.peekRegister(register);
+                    return registerHeap != null && registerHeap.isKnown() && registerHeap.isImmutable();
+                }).toArray();
+                if (constRegisters.contains(toRegister)) {
+                    // invoke(*) L*;->*(*)*
+                    // move-result(*) CONST
+                    constRegisters.remove(toRegister);
+                    if (knownParameterRegisters.length != 1) {
+                        return ConstantParentStatus.UNKNOWN;
+                    } else {
+                        constRegisters.addAll(knownParameterRegisters);
                         return ConstantParentStatus.SEEK_BACK;
                     }
+                } else {
+                    // invoke(*) L*;->*(*)*
+                    // move-result(*) SIDE_EFFECT
                     if (sideEffectRegisters.contains(toRegister)) {
-                        // move-result(-object) will handle in InvokeOp, check and pass to its parent
-                        return ConstantParentStatus.SEEK_BACK;
+                        sideEffectRegisters.remove(toRegister);
+                    }
+                    var toRegisterHeap = parentNode.getContext().getMethodState().peekRegister(toRegister);
+                    if (toRegisterHeap != null && toRegisterHeap.isKnown() && toRegisterHeap.isImmutable()) {
+                        sideEffectRegisters.add(toRegister);
+                        return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
                     } else {
                         return ConstantParentStatus.TERMINATE;
                     }
                 }
+            } else {
+
             }
+
         }
         // else if (parentOp instanceof IfOp) {} // Note: If with constant switch should have been optimized
         return ConstantParentStatus.UNKNOWN; // Unhandled op type
