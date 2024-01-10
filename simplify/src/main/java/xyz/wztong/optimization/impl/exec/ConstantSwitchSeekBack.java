@@ -118,7 +118,8 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                             seekBackOrTerminate = true;
                             currentNode = currentNode.getParent();
                         }
-                        case UNKNOWN -> throw new IllegalStateException("Unknown structure for parent finding");
+                        case UNKNOWN, NOT_IMPLEMENTED ->
+                                throw new IllegalStateException(updateResult.name() + " structure for parent finding");
                     }
                 }
                 if (sideEffectNodes.isEmpty()) {
@@ -195,15 +196,14 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
     }
 
     private enum ConstantParentStatus {
-        TERMINATE, SEEK_BACK, UNKNOWN, SEEK_BACK_OR_TERMINATE
+        TERMINATE, SEEK_BACK, UNKNOWN, NOT_IMPLEMENTED, SEEK_BACK_OR_TERMINATE
     }
 
     private static ConstantParentStatus updateParent(ExecutionNode currentNode, TIntSet constRegisters, TIntSet sideEffectRegisters, Deque<Map.Entry<ExecutionNode, TIntSet>> sideEffectNodes) {
         var parentNode = currentNode.getParent();
         var currentOp = currentNode.getOp();
         if (parentNode == null) {
-            // Reaches the top
-            return ConstantParentStatus.UNKNOWN;
+            return ConstantParentStatus.TERMINATE;
         }
         var parentOp = parentNode.getOp();
         if (parentOp.getSideEffectLevel().getValue() > Utils.MAX_SIDE_EFFECT_LEVEL.getValue()) {
@@ -223,9 +223,8 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 if (constRegisters.isEmpty()) {
                     return ConstantParentStatus.TERMINATE;
                 } else {
-                    // TODO
                     // sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
-                    return ConstantParentStatus.UNKNOWN;
+                    return ConstantParentStatus.NOT_IMPLEMENTED;
                 }
             } else {
                 sideEffectRegisters.add(destRegister);
@@ -246,7 +245,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         if (constRegisters.size() == 1) {
                             return ConstantParentStatus.SEEK_BACK;
                         } else {
-                            return ConstantParentStatus.UNKNOWN;
+                            return ConstantParentStatus.NOT_IMPLEMENTED;
                         }
                     } else {
                         sideEffectRegisters.remove(toRegister);
@@ -271,8 +270,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
             }
         }
 
-        // TODO
         if (parentOp instanceof InvokeOp invokeOp) {
+            if (!invokeOp.getMethod().isStatic()) {
+                return ConstantParentStatus.NOT_IMPLEMENTED;
+            }
             var parameterRegisters = invokeOp.getParameterRegisters();
             var invokeMethodState = parentNode.getContext().getMethodState();
             if (currentOp instanceof MoveOp moveOp && getMoveTypeString(moveOp).equals("RESULT")) {
@@ -286,7 +287,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     // move-result(*) CONST
                     constRegisters.remove(toRegister);
                     if (knownParameterRegisters.length != 1) {
-                        return ConstantParentStatus.UNKNOWN;
+                        return ConstantParentStatus.NOT_IMPLEMENTED;
                     } else {
                         constRegisters.addAll(knownParameterRegisters);
                         return ConstantParentStatus.SEEK_BACK;
@@ -311,7 +312,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
         }
         // else if (parentOp instanceof IfOp) {} // Note: If with constant switch should have been optimized
-        return ConstantParentStatus.UNKNOWN; // Unhandled op type
+        return ConstantParentStatus.NOT_IMPLEMENTED;
     }
 
     private static int getRegister(SwitchOp switchOp) {
