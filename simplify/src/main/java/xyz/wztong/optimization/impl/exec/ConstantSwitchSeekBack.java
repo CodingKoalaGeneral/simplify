@@ -101,8 +101,8 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 NextSeekBack:
                 for (int i = 0; i < seekBackLimit; i++) {
                     var updateResult = updateParent(currentNode, constRegisters, sideEffectRegisters, sideEffectNodes);
-                    if (!constRegisters.forEach(register -> !sideEffectRegisters.contains(register))) {
-                        throw new IllegalStateException("Oops, hidden bug triggered");
+                    if (sideEffectRegisters.removeAll(constRegisters)) {
+                        print("Overlapped register: " + constRegisters + " <=> " + sideEffectRegisters + " @" + currentNode.getOp());
                     }
                     switch (updateResult) {
                         case TERMINATE -> {
@@ -295,21 +295,23 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 } else {
                     // invoke(*) L*;->*(*)*
                     // move-result(*) SIDE_EFFECT
-                    if (sideEffectRegisters.contains(toRegister)) {
-                        sideEffectRegisters.remove(toRegister);
+                    sideEffectRegisters.remove(toRegister);
+                    var toRegisterHeap = invokeMethodState.peekRegister(toRegister);
+                    if (toRegisterHeap == null || !toRegisterHeap.isKnown() || !toRegisterHeap.isImmutable()) {
+                        return ConstantParentStatus.TERMINATE;
                     }
-                    var toRegisterHeap = parentNode.getContext().getMethodState().peekRegister(toRegister);
-                    if (toRegisterHeap != null && toRegisterHeap.isKnown() && toRegisterHeap.isImmutable()) {
+                    if (knownParameterRegisters.length != 1) {
+                        return ConstantParentStatus.NOT_IMPLEMENTED;
+                    } else {
+                        sideEffectRegisters.addAll(knownParameterRegisters);
+                        sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
                         sideEffectRegisters.add(toRegister);
                         return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
-                    } else {
-                        return ConstantParentStatus.TERMINATE;
                     }
                 }
             } else {
-
+                return ConstantParentStatus.NOT_IMPLEMENTED;
             }
-
         }
         // else if (parentOp instanceof IfOp) {} // Note: If with constant switch should have been optimized
         return ConstantParentStatus.NOT_IMPLEMENTED;
