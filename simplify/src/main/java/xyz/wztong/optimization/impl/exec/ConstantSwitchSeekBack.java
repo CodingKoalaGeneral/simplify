@@ -112,6 +112,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         default -> throw new IllegalStateException(updateResult.name() + " in parent finding");
                     }
                 }
+//                System.out.println(sideEffectNodes.stream().map(pair -> pair.getKey().getOp().toString()).collect(Collectors.joining("\n")).concat("\n"));
                 for (var testNode : sideEffectNodes) {
                     var testNodeAddress = testNode.getKey().getAddress();
                     var useThisNode = testNode.getValue().forEach(register -> {
