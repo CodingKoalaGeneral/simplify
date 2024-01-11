@@ -118,8 +118,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                             seekBackOrTerminate = true;
                             currentNode = currentNode.getParent();
                         }
-                        case UNKNOWN, NOT_IMPLEMENTED ->
-                                throw new IllegalStateException(updateResult.name() + " structure for parent finding");
+                        default -> throw new IllegalStateException(updateResult.name() + " in parent finding");
                     }
                 }
                 if (sideEffectNodes.isEmpty()) {
@@ -140,9 +139,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         if (oldNode != null && oldNode.to != targetAddress) {
                             throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
                         }
-                        break;
+                        break; // NexSwitch
                     }
                 } while (!sideEffectNodes.isEmpty());
+                // Continue NextSwitch
             }
         }
         var positions = new ArrayList<>(jumpTable.values());
@@ -248,9 +248,9 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                             return ConstantParentStatus.NOT_IMPLEMENTED;
                         }
                     } else {
-                        sideEffectRegisters.remove(toRegister);
                         sideEffectRegisters.add(fromRegister);
                         sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
+                        sideEffectRegisters.add(toRegister);
                         return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
                     }
                 }
@@ -275,41 +275,43 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 return ConstantParentStatus.NOT_IMPLEMENTED;
             }
             var parameterRegisters = invokeOp.getParameterRegisters();
-            var invokeMethodState = parentNode.getContext().getMethodState();
+            var beforeInvokeMethodState = parentNode.getParent().getContext().getMethodState();
+            var knownParameterRegisters = Arrays.stream(parameterRegisters).filter(register -> {
+                var registerHeap = beforeInvokeMethodState.peekRegister(register);
+                return registerHeap != null && registerHeap.isKnown() && registerHeap.isImmutable();
+            }).toArray();
             if (currentOp instanceof MoveOp moveOp && getMoveTypeString(moveOp).equals("RESULT")) {
                 var toRegister = moveOp.getToRegister();
-                var knownParameterRegisters = Arrays.stream(parameterRegisters).filter(register -> {
-                    var registerHeap = invokeMethodState.peekRegister(register);
-                    return registerHeap != null && registerHeap.isKnown() && registerHeap.isImmutable();
-                }).toArray();
                 if (constRegisters.contains(toRegister)) {
                     // invoke(*) L*;->*(*)*
                     // move-result(*) CONST
                     constRegisters.remove(toRegister);
+                    constRegisters.addAll(knownParameterRegisters);
                     if (knownParameterRegisters.length != 1) {
                         return ConstantParentStatus.NOT_IMPLEMENTED;
                     } else {
-                        constRegisters.addAll(knownParameterRegisters);
                         return ConstantParentStatus.SEEK_BACK;
                     }
                 } else {
                     // invoke(*) L*;->*(*)*
                     // move-result(*) SIDE_EFFECT
                     sideEffectRegisters.remove(toRegister);
-                    var toRegisterHeap = invokeMethodState.peekRegister(toRegister);
+                    var toRegisterHeap = beforeInvokeMethodState.peekRegister(toRegister);
                     if (toRegisterHeap == null || !toRegisterHeap.isKnown() || !toRegisterHeap.isImmutable()) {
                         return ConstantParentStatus.TERMINATE;
                     }
+                    sideEffectRegisters.addAll(knownParameterRegisters);
                     if (knownParameterRegisters.length != 1) {
                         return ConstantParentStatus.NOT_IMPLEMENTED;
                     } else {
-                        sideEffectRegisters.addAll(knownParameterRegisters);
-                        sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
                         sideEffectRegisters.add(toRegister);
+                        sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
                         return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
                     }
                 }
             } else {
+                // invoke(*) L*;->*(*)*
+                // [X] move-result(*) [X]
                 return ConstantParentStatus.NOT_IMPLEMENTED;
             }
         }
