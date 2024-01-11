@@ -2,7 +2,7 @@ package xyz.wztong.type;
 
 import org.cf.smalivm.type.UnknownValue;
 import org.cf.util.ClassNameUtils;
-import xyz.wztong.Utils;
+import xyz.wztong.utils.Utils;
 
 public class SelfDefinedInstance extends UnknownValue implements org.cf.smalivm.type.SelfDefinedInstance {
     @Override

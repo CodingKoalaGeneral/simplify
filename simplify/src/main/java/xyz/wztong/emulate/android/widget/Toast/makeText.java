@@ -4,7 +4,7 @@ import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.opcode.Op;
-import xyz.wztong.Utils;
+import xyz.wztong.utils.Utils;
 import xyz.wztong.emulate.EmulateMethodStateMethod;
 import xyz.wztong.type.android.widget.Toast;
 

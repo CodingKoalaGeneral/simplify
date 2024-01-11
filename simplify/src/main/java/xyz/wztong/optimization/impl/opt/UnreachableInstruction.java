@@ -5,14 +5,14 @@ import org.cf.smalivm.opcode.NopOp;
 import org.cf.smalivm.opcode.SwitchOp;
 import org.cf.smalivm.opcode.SwitchPayloadOp;
 import org.jf.dexlib2.Opcode;
-import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
+import xyz.wztong.utils.VmUtils;
 
 @Optimization.Original
 public class UnreachableInstruction implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
-        var handlerAddresses = Utils.getTryHandlerAddresses(manipulator);
+        var handlerAddresses = VmUtils.getTryHandlerAddresses(manipulator);
         var validAddresses = getValidAddresses(manipulator, address -> {
             if (manipulator.wasAddressReached(address)) {
                 return false;

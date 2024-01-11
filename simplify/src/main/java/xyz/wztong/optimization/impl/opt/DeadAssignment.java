@@ -6,7 +6,7 @@ import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.opcode.APutOp;
 import org.cf.smalivm.opcode.InvokeOp;
 import org.cf.smalivm.opcode.Op;
-import xyz.wztong.Utils;
+import xyz.wztong.utils.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.Arrays;

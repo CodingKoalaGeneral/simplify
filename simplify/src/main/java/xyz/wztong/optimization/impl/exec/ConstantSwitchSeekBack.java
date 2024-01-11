@@ -13,8 +13,9 @@ import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
-import xyz.wztong.Utils;
+import xyz.wztong.utils.Utils;
 import xyz.wztong.optimization.Optimization;
+import xyz.wztong.utils.ReflectUtils;
 
 import java.util.*;
 
@@ -158,7 +159,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
     private BuilderInstruction cloneBuilderInstruction(BuilderInstruction instruction) {
         try {
-            BuilderInstruction newInstruction = Utils.shallowClone(instruction);
+            BuilderInstruction newInstruction = ReflectUtils.shallowClone(instruction);
             var fLocation = BuilderInstruction.class.getDeclaredField("location");
             fLocation.setAccessible(true);
             fLocation.set(newInstruction, null);

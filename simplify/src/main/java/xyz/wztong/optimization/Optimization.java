@@ -3,7 +3,7 @@ package xyz.wztong.optimization;
 import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.type.UnknownValue;
-import xyz.wztong.Utils;
+import xyz.wztong.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
@@ -59,7 +59,7 @@ public interface Optimization {
     }
 
     default void print(Object obj) {
-        Utils.print(this.getClass().getSimpleName() + ": " + obj);
+        CommonUtils.print(this.getClass().getSimpleName() + ": " + obj);
     }
 
 }

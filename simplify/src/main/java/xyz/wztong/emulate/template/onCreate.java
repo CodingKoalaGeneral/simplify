@@ -5,9 +5,10 @@ import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.opcode.Op;
 import org.cf.smalivm.type.UnknownValue;
-import xyz.wztong.Utils;
+import xyz.wztong.utils.Utils;
 import xyz.wztong.emulate.EmulateMethodStateMethod;
 import xyz.wztong.type.android.app.Activity;
+import xyz.wztong.utils.VmUtils;
 
 public class onCreate extends EmulateMethodStateMethod {
     @Override
@@ -18,7 +19,7 @@ public class onCreate extends EmulateMethodStateMethod {
         if (activityValue instanceof Activity activity) {
             Utils.printExecutingFunction(activity.toString());
             if (activity.superOnCreateCalled) {
-                mState.assignThrowRegister(Utils.makeHeapItem(new RuntimeException()));
+                mState.assignThrowRegister(VmUtils.makeHeapItem(new RuntimeException()));
             } else {
                 activity.superOnCreateCalled = true;
             }

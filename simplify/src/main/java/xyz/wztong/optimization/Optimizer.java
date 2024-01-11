@@ -4,12 +4,12 @@ import org.cf.simplify.ExecutionGraphManipulator;
 import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.context.ExecutionGraph;
 import org.cf.smalivm.exception.VirtualMachineException;
-import xyz.wztong.Utils;
 import xyz.wztong.optimization.impl.exec.ConstantSwitchSeekBack;
 import xyz.wztong.optimization.impl.exec.MergeMultipleGoto;
 import xyz.wztong.optimization.impl.exec.SwitchThenGoto;
 import xyz.wztong.optimization.impl.exec.UnreachableSwitchBranch;
 import xyz.wztong.optimization.impl.opt.*;
+import xyz.wztong.utils.CommonUtils;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -74,7 +74,7 @@ public class Optimizer {
                 }
                 var newChange = optimization.perform(manipulator);
                 if (newChange != 0) {
-                    Utils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
+                    CommonUtils.print("Optimization.ReOptimize: Simplifying (" + newChange + "): " + optimization.getClass().getSimpleName());
                     vm.updateInstructionGraph(method);
                     passChanges += newChange;
                 }
@@ -88,7 +88,7 @@ public class Optimizer {
         if (reOptimizeCount != 0) {
             return reOptimizeCount;
         } else {
-            Utils.print("Optimization.ReOptimize: No further to optimize, doing Optimization.ReExecute");
+            CommonUtils.print("Optimization.ReOptimize: No further to optimize, doing Optimization.ReExecute");
         }
         // Re-Execute should just run once, then re-execute
         for (var optimization : optimizations) {
@@ -97,12 +97,12 @@ public class Optimizer {
             }
             var newChange = optimization.perform(manipulator);
             if (newChange != 0) {
-                Utils.print("Optimizer.ReExecute: Simplified(" + newChange + "): " + optimization.getClass().getSimpleName() + " @" + method);
+                CommonUtils.print("Optimizer.ReExecute: Simplified(" + newChange + "): " + optimization.getClass().getSimpleName() + " @" + method);
                 vm.updateInstructionGraph(method);
                 return newChange;
             }
         }
-        Utils.print("Optimization: No further to optimize, finished");
+        CommonUtils.print("Optimization: No further to optimize, finished");
         return OPTIMIZER_OPTIMIZED;
     }
 
