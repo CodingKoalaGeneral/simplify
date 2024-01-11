@@ -158,7 +158,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
     private BuilderInstruction cloneBuilderInstruction(BuilderInstruction instruction) {
         try {
-            BuilderInstruction newInstruction = Utils.deepClone(instruction);
+            BuilderInstruction newInstruction = Utils.shallowClone(instruction);
             var fLocation = BuilderInstruction.class.getDeclaredField("location");
             fLocation.setAccessible(true);
             fLocation.set(newInstruction, null);

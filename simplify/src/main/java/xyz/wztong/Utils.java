@@ -132,15 +132,7 @@ public class Utils {
 
     public static <T> T deepClone(Object object) {
         if (cloner == null) {
-            try {
-                var cCloner = Class.forName("com.rits.cloning.Cloner");
-                var ccCloner = cCloner.getConstructor();
-                ccCloner.setAccessible(true);
-                cloner = ccCloner.newInstance();
-
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to init cloner", e);
-            }
+            initCloner();
         }
         try {
             var cCloner = Class.forName("com.rits.cloning.Cloner");
@@ -148,7 +140,31 @@ public class Utils {
             mDeepClone.setAccessible(true);
             return cast(mDeepClone.invoke(cloner, object));
         } catch (Exception e) {
-            throw new RuntimeException("Unable to clone", e);
+            throw new RuntimeException("Unable to deep clone", e);
+        }
+    }
+    public static <T> T shallowClone(Object object) {
+        if (cloner == null) {
+            initCloner();
+        }
+        try {
+            var cCloner = Class.forName("com.rits.cloning.Cloner");
+            var mDeepClone = cCloner.getDeclaredMethod("shallowClone", Object.class);
+            mDeepClone.setAccessible(true);
+            return cast(mDeepClone.invoke(cloner, object));
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to shallow clone", e);
+        }
+    }
+
+    private static void initCloner() {
+        try {
+            var cCloner = Class.forName("com.rits.cloning.Cloner");
+            var ccCloner = cCloner.getDeclaredConstructor();
+            ccCloner.setAccessible(true);
+            cloner = ccCloner.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to init cloner", e);
         }
     }
 
