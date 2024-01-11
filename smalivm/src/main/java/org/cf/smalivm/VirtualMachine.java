@@ -226,7 +226,7 @@ public class VirtualMachine {
             int parameterRegister = graph.getNodePile(0).get(0).getContext().getMethodState().getParameterStart();
             for (int parameterIndex = 0; parameterIndex < parameterTypes.size(); parameterIndex++) {
                 String type;
-                HeapItem actualCallerItem = callerState.peekRegister(parameterIndex);
+                HeapItem actualCallerItem = callerState.peekParameter(parameterRegisters[parameterIndex]);
                 if (actualCallerItem == null || (type = actualCallerItem.getType()) == null) {
                     type = parameterTypes.get(parameterIndex);
                 }
