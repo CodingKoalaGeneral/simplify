@@ -15,6 +15,7 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
@@ -88,7 +89,6 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 }
                 validNodesWithSwitchAddress.add(Map.entry(node, targetAddress));
             }
-            NextSwitch:
             for (var validNodeWithSwitchAddress : validNodesWithSwitchAddress) {
                 var node = validNodeWithSwitchAddress.getKey();
                 var targetAddress = validNodeWithSwitchAddress.getValue();
@@ -97,7 +97,6 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 constRegisters.add(switchRegister);
                 var sideEffectNodes = new LinkedList<Map.Entry<ExecutionNode, TIntSet>>();
                 var currentNode = node;
-                var seekBackOrTerminate = false;
                 NextSeekBack:
                 for (int i = 0; i < seekBackLimit; i++) {
                     var updateResult = updateParent(currentNode, constRegisters, sideEffectRegisters, sideEffectNodes);
@@ -106,49 +105,36 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     }
                     switch (updateResult) {
                         case TERMINATE -> {
-                            if (seekBackOrTerminate) {
-                                sideEffectNodes.addFirst(Map.entry(currentNode.getParent(), new TIntHashSet(sideEffectRegisters)));
-                                break NextSeekBack;
-                            } else {
-                                continue NextSwitch;
-                            }
+                            sideEffectNodes.addFirst(Map.entry(currentNode.getParent(), new TIntHashSet(sideEffectRegisters)));
+                            break NextSeekBack;
                         }
                         case SEEK_BACK -> currentNode = currentNode.getParent();
-                        case SEEK_BACK_OR_TERMINATE -> {
-                            seekBackOrTerminate = true;
-                            currentNode = currentNode.getParent();
-                        }
                         default -> throw new IllegalStateException(updateResult.name() + " in parent finding");
                     }
                 }
-                if (sideEffectNodes.isEmpty()) {
-                    continue;
-                }
-                var remainingNodes = new LinkedList<ExecutionNode>();
-                do {
-                    var testNode = sideEffectNodes.removeFirst();
+                for (var testNode : sideEffectNodes) {
                     var testNodeAddress = testNode.getKey().getAddress();
                     var useThisNode = testNode.getValue().forEach(register -> {
                         var consensus = manipulator.getRegisterConsensus(testNodeAddress, register);
                         return consensus != null && consensus.isKnown();
                     });
-                    remainingNodes.addLast(testNode.getKey());
                     if (useThisNode) {
-                        var newNode = new JumpNode(testNodeAddress + testNode.getKey().getOp().getInstruction().getCodeUnits(), targetAddress, remainingNodes);
+                        var sideEffectNodesMapped = new LinkedList<ExecutionNode>();
+                        sideEffectNodes.forEach(sideEffectNode -> sideEffectNodesMapped.addLast(sideEffectNode.getKey()));
+                        var newNode = new JumpNode(testNodeAddress + testNode.getKey().getOp().getInstruction().getCodeUnits(), targetAddress, sideEffectNodesMapped);
                         var oldNode = jumpTable.put(testNodeAddress, newNode);
                         if (oldNode != null && oldNode.to != targetAddress) {
                             throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
                         }
-                        break; // NexSwitch
+                        break; // break NexSwitch;
                     }
-                } while (!sideEffectNodes.isEmpty());
-                // Continue NextSwitch
+                }
+                // continue NextSwitch;
             }
         }
         var positions = new ArrayList<>(jumpTable.values());
         // Adding instructions from bottom, reverse order
         positions.sort((o1, o2) -> Integer.compare(o2.from, o1.from));
-        @UnsafeManipulator
         var impl = manipulator.getMethod().getImplementation();
         for (var node : positions) {
             var from = node.from;
@@ -196,7 +182,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
     }
 
     private enum ConstantParentStatus {
-        TERMINATE, SEEK_BACK, UNKNOWN, NOT_IMPLEMENTED, SEEK_BACK_OR_TERMINATE
+        TERMINATE, SEEK_BACK, UNKNOWN, NOT_IMPLEMENTED
     }
 
     private static ConstantParentStatus updateParent(ExecutionNode currentNode, TIntSet constRegisters, TIntSet sideEffectRegisters, Deque<Map.Entry<ExecutionNode, TIntSet>> sideEffectNodes) {
@@ -223,13 +209,12 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                 if (constRegisters.isEmpty()) {
                     return ConstantParentStatus.TERMINATE;
                 } else {
-                    // sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
                     return ConstantParentStatus.NOT_IMPLEMENTED;
                 }
             } else {
                 sideEffectRegisters.add(destRegister);
                 sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
-                return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
+                return ConstantParentStatus.SEEK_BACK;
             }
         }
 
@@ -248,10 +233,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                             return ConstantParentStatus.NOT_IMPLEMENTED;
                         }
                     } else {
+                        sideEffectRegisters.remove(toRegister);
                         sideEffectRegisters.add(fromRegister);
                         sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
-                        sideEffectRegisters.add(toRegister);
-                        return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
+                        return ConstantParentStatus.SEEK_BACK;
                     }
                 }
                 case "RESULT" -> {
@@ -306,7 +291,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     } else {
                         sideEffectRegisters.add(toRegister);
                         sideEffectNodes.addFirst(Map.entry(parentNode, new TIntHashSet(sideEffectRegisters)));
-                        return ConstantParentStatus.SEEK_BACK_OR_TERMINATE;
+                        return ConstantParentStatus.SEEK_BACK;
                     }
                 }
             } else {
