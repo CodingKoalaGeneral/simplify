@@ -8,6 +8,8 @@ import org.cf.smalivm.context.ExecutionNode;
 import org.cf.smalivm.opcode.*;
 import org.jf.dexlib2.Opcode;
 import org.jf.dexlib2.builder.BuilderInstruction;
+import org.jf.dexlib2.builder.BuilderOffsetInstruction;
+import org.jf.dexlib2.builder.MutableMethodImplementation;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction10t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction20t;
 import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
@@ -15,7 +17,6 @@ import xyz.wztong.Utils;
 import xyz.wztong.optimization.Optimization;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
@@ -33,12 +34,22 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
 
     private static final class JumpNode {
         private final int from;
-        private int to;
-        private final Deque<ExecutionNode> sideEffectNodes;
+        private final LinkedList<ExecutionNode> sideEffectNodes;
+        private final BuilderOffsetInstruction to;
 
-        private JumpNode(int from, int to, Deque<ExecutionNode> sideEffectNodes) {
+        private JumpNode(MutableMethodImplementation impl, int from, int to, LinkedList<ExecutionNode> sideEffectNodes) {
             this.from = from;
-            this.to = to;
+            BuilderOffsetInstruction gotoInstruction;
+            var toLabel = impl.newLabelForAddress(to);
+            var offsetAbs = Math.abs(to - from);
+            if (offsetAbs < 0x7f) {
+                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
+            } else if (offsetAbs < 0x7fff) {
+                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
+            } else {
+                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
+            }
+            this.to = gotoInstruction;
             this.sideEffectNodes = sideEffectNodes;
         }
     }
@@ -46,6 +57,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var jumpTable = new HashMap<Integer, JumpNode>();
+        var impl = manipulator.getMethod().getImplementation();
         for (int address : manipulator.getAddresses()) {
             if (!manipulator.wasAddressReached(address)) {
                 continue;
@@ -122,9 +134,9 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     if (useThisNode) {
                         var sideEffectNodesMapped = new LinkedList<ExecutionNode>();
                         sideEffectNodes.forEach(sideEffectNode -> sideEffectNodesMapped.addLast(sideEffectNode.getKey()));
-                        var newNode = new JumpNode(testNodeAddress + testNode.getKey().getOp().getInstruction().getCodeUnits(), targetAddress, sideEffectNodesMapped);
+                        var newNode = new JumpNode(impl, testNodeAddress + testNode.getKey().getOp().getInstruction().getCodeUnits(), targetAddress, sideEffectNodesMapped);
                         var oldNode = jumpTable.put(testNodeAddress, newNode);
-                        if (oldNode != null && oldNode.to != targetAddress) {
+                        if (oldNode != null) {
                             throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
                         }
                         break; // break NexSwitch;
@@ -136,36 +148,10 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
         var positions = new ArrayList<>(jumpTable.values());
         // Adding instructions from bottom, reverse order
         positions.sort((o1, o2) -> Integer.compare(o2.from, o1.from));
-        var impl = manipulator.getMethod().getImplementation();
         for (var node : positions) {
             var from = node.from;
-            var to = node.to;
-            var sideEffectNodes = node.sideEffectNodes;
-            var toLabel = impl.newLabelForAddress(to);
-            BuilderInstruction gotoInstruction;
-            var offsetAbs = Math.abs(to - from);
-            if (offsetAbs < 0x7f) {
-                gotoInstruction = new BuilderInstruction10t(Opcode.GOTO, toLabel);
-            } else if (offsetAbs < 0x7fff) {
-                gotoInstruction = new BuilderInstruction20t(Opcode.GOTO_16, toLabel);
-            } else {
-                gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
-            }
-            print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
-            var insertLength = 0;
-            manipulator.addInstruction(from, gotoInstruction);
-            while (!sideEffectNodes.isEmpty()) {
-                var sideEffectNode = sideEffectNodes.removeLast();
-                var sideEffectOp = sideEffectNode.getOp();
-                var sideEffectInstruction = sideEffectOp.getInstruction();
-                // NOTE: Necessary to clone an instance of BuilderInstruction
-                var newSideEffectInstruction = cloneBuilderInstruction(sideEffectInstruction);
-                manipulator.addInstruction(from, newSideEffectInstruction);
-                insertLength += sideEffectInstruction.getCodeUnits();
-            }
-            // After inserting an instruction, all offsets need to be re-caculated
-            int finalInsertLength = insertLength;
-            positions.stream().filter(impactNode -> impactNode.to > from).forEach(impactNode -> impactNode.to += finalInsertLength);
+            manipulator.addInstruction(from, node.to);
+            node.sideEffectNodes.descendingIterator().forEachRemaining(sideEffectNode -> manipulator.addInstruction(from, cloneBuilderInstruction(sideEffectNode.getOp().getInstruction())));
         }
         return jumpTable.size();
     }
