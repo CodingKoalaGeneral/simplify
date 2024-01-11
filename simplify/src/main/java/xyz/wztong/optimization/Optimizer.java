@@ -55,6 +55,10 @@ public class Optimizer {
         return optimize(DEFAULT_OPTIMIZATIONS, graph);
     }
 
+    public static int optimize(Optimization optimization, ExecutionGraph graph) {
+        return optimize(List.of(optimization), graph);
+    }
+
     public static int optimize(List<Optimization> optimizations, ExecutionGraph graph) {
         var vm = graph.getVM();
         var method = graph.getMethod();
