@@ -3,10 +3,8 @@ package xyz.wztong;
 import org.cf.smalivm.VirtualMachineFactory;
 import org.cf.smalivm.exception.VirtualMachineException;
 import xyz.wztong.optimization.Optimizer;
-import xyz.wztong.optimization.impl.exec.ConstantSwitchSeekBack;
 
 import java.io.IOException;
-import java.util.List;
 
 @SuppressWarnings("all")
 public class Main {
@@ -18,10 +16,11 @@ public class Main {
 
     public static void main(String[] args) throws IOException, VirtualMachineException {
         Utils.init();
-        var vm = new VirtualMachineFactory().build("C:\\Tencent\\2536678149\\FileRecv\\App.apk.3df22fc1.dex");
-        var graph = vm.execute("Lcom/example/application2/MainActivity;->onCreate(Landroid/os/Bundle;)V");
-        Optimizer.optimize(List.of(new ConstantSwitchSeekBack()), graph);
-        Utils.writeDex(vm, "C:\\Tencent\\2536678149\\FileRecv\\App.apk." + Integer.toHexString(graph.toSmali().hashCode()) + ".dex");
+        var dexPath = "C:\\Users\\WZTong\\Downloads\\IdeaProjectOffline\\DalvikDeObf\\simplify\\src\\main\\resources\\wztong\\QQPure\\App.apk";
+        var methodSignature = "Lcom/example/application2/MainActivity;->onCreate(Landroid/os/Bundle;)V";
+        var vm = new VirtualMachineFactory().build(dexPath);
+//        Optimizer.optimize(new ConstantSwitchSeekBack(), vm.execute(methodSignature));
+        Utils.writeDex(vm, dexPath + ".%x.dex".formatted(Optimizer.getOptimized(vm, methodSignature).toSmali(true).hashCode()));
     }
 
 }
