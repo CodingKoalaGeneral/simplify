@@ -97,10 +97,8 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
                 filterOps.remove(currentRemoveOp);
             }
         }
-        positions.sort(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo)));
         var impl = manipulator.getMethod().getImplementation();
-        for (int i = 0; i < positions.size(); i++) {
-            var table = positions.get(i);
+        var labelPositions = positions.stream().map(table -> {
             var from = table.getKey();
             var to = table.getValue();
             var toLabel = impl.newLabelForAddress(to);
@@ -113,21 +111,9 @@ public class MergeMultipleGoto implements Optimization.ReExecute {
             } else {
                 gotoInstruction = new BuilderInstruction30t(Opcode.GOTO_32, toLabel);
             }
-            print(manipulator.getOp(from) + "@" + Integer.toHexString(from) + " => " + manipulator.getOp(to) + "@" + Integer.toHexString(to));
-            manipulator.addInstruction(from, gotoInstruction);
-            // After inserting an instruction, all offsets need to be re-caculated
-            var insertLength = gotoInstruction.getCodeUnits();
-            for (int j = 0; j < positions.size(); j++) {
-                var impactTable = positions.get(j);
-                // From is always smaller than modifing instruction's position
-                var impactFrom = impactTable.getKey();
-                var impactTo = impactTable.getValue();
-                if (impactTo > from) {
-                    var newTo = impactTo + insertLength;
-                    positions.set(j, Map.entry(impactFrom, newTo));
-                }
-            }
-        }
+            return Map.entry(from, gotoInstruction);
+        }).sorted(Map.Entry.comparingByKey(Collections.reverseOrder(Integer::compareTo))).toList();
+        labelPositions.forEach(position -> manipulator.addInstruction(position.getKey(), position.getValue()));
         return positions.size();
     }
 
