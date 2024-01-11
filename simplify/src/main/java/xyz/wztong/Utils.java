@@ -40,11 +40,7 @@ public class Utils {
             throw new IOException("Not a file");
         }
         var vm = new VirtualMachineFactory().build(file);
-        ExecutionGraph graph;
-        do {
-            graph = vm.execute(method);
-        } while (Optimizer.optimize(graph) != Optimizer.OPTIMIZER_OPTIMIZED);
-        return graph;
+        return Optimizer.getOptimized(vm, method);
     }
 
     @SuppressWarnings("unused")

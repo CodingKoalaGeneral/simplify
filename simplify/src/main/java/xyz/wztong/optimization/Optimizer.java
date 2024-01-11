@@ -1,7 +1,9 @@
 package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
+import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.context.ExecutionGraph;
+import org.cf.smalivm.exception.VirtualMachineException;
 import xyz.wztong.Utils;
 import xyz.wztong.optimization.impl.exec.ConstantSwitchSeekBack;
 import xyz.wztong.optimization.impl.exec.MergeMultipleGoto;
@@ -104,4 +106,11 @@ public class Optimizer {
         return OPTIMIZER_OPTIMIZED;
     }
 
+    public static ExecutionGraph getOptimized(VirtualMachine vm, String method) throws VirtualMachineException {
+        ExecutionGraph graph;
+        do {
+            graph = vm.execute(method);
+        } while (optimize(graph) != OPTIMIZER_OPTIMIZED);
+        return graph;
+    }
 }
