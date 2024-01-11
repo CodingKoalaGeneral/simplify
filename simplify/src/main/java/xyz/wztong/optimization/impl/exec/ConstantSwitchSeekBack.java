@@ -124,12 +124,12 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         default -> throw new IllegalStateException(updateResult.name() + " in parent finding");
                     }
                 }
-//                System.out.println(sideEffectNodes.stream().map(pair -> pair.getKey().getOp().toString()).collect(Collectors.joining("\n")).concat("\n"));
+                // System.out.println(sideEffectNodes.stream().map(pair -> pair.getKey().getOp().toString()).collect(Collectors.joining("\n")).concat("\n"));
                 for (var testNode : sideEffectNodes) {
                     var testNodeAddress = testNode.getKey().getAddress();
                     var useThisNode = testNode.getValue().forEach(register -> {
                         var consensus = manipulator.getRegisterConsensus(testNodeAddress, register);
-                        return consensus != null && consensus.isKnown();
+                        return consensus != null && !Optimization.isUnknownValue(consensus);
                     });
                     if (useThisNode) {
                         var sideEffectNodesMapped = new LinkedList<ExecutionNode>();
@@ -269,7 +269,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     // move-result(*) SIDE_EFFECT
                     sideEffectRegisters.remove(toRegister);
                     var toRegisterHeap = beforeInvokeMethodState.peekRegister(toRegister);
-                    if (toRegisterHeap == null || !toRegisterHeap.isKnown() || !toRegisterHeap.isImmutable()) {
+                    if (Optimization.isUnknownValue(toRegisterHeap) || !toRegisterHeap.isImmutable()) {
                         return ConstantParentStatus.TERMINATE;
                     }
                     sideEffectRegisters.addAll(knownParameterRegisters);
