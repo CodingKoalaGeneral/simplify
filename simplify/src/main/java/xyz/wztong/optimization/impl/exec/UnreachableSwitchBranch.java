@@ -72,6 +72,7 @@ public class UnreachableSwitchBranch implements Optimization.ReExecute {
             // Instead of using "manipulator.replaceInstruction()"
             impl.replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
         }
+        manipulatorRebuildGraph(manipulator);
         return replaced;
     }
 

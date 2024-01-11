@@ -84,6 +84,7 @@ public class SwitchThenGoto implements Optimization.ReExecute {
             result += replace.size();
             impl.replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
         }
+        manipulatorRebuildGraph(manipulator);
         return result;
     }
 

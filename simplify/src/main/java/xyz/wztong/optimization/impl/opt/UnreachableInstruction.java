@@ -55,6 +55,7 @@ public class UnreachableInstruction implements Optimization.ReOptimize {
             }
             // Do nothing with standalone SwitchPayloadOp
         });
+        manipulatorRebuildGraph(manipulator);
         return validAddresses.size();
     }
 
