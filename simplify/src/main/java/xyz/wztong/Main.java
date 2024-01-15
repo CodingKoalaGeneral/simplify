@@ -24,7 +24,8 @@ public class Main {
         var methodSignature = "Lcom/example/application2/MainActivity;->onCreate(Landroid/os/Bundle;)V";
         var vm = new VirtualMachineFactory().setInputPath(dexPath).build();
 //        Optimizer.optimize(new ConstantSwitchSeekBack(), vm.execute(methodSignature));
-        VmUtils.writeDex(vm, dexPath + ".%x.dex".formatted(Optimizer.getOptimized(vm, methodSignature).toSmali(true).hashCode()));
+        var hashCode = Optimizer.getOptimized(vm, methodSignature).toSmali(true).hashCode();
+        VmUtils.writeDex(vm, dexPath + "." + Integer.toHexString(hashCode) + ".dex");
     }
 
 }
