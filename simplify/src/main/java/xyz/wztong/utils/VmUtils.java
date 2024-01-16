@@ -17,16 +17,6 @@ import java.util.HashSet;
 
 public class VmUtils {
 
-    public static void init() {
-        addMethod("Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V");
-        addMethod("Landroid/app/Activity;->setContentView(I)V");
-        addMethod("Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V");
-        addMethod("Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;");
-        addMethod("Landroid/widget/Toast;->show()V");
-        addMethod("Landroid/app/Activity;->getApplication()Landroid/app/Application;");
-        addMethod("Ljava/lang/Double;->decode(Ljava/lang/String;)Ljava/lang/Double;");
-    }
-
     public static void setParameter(MethodState mState, Object object1, String type1, Object object2, String type2) {
         setParameter(mState, new HeapItem(object1, type1), new HeapItem(object2, type2));
     }
