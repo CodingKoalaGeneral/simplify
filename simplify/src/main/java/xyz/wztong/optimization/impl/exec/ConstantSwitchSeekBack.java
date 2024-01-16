@@ -140,7 +140,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                         if (oldNode != null) {
                             throw new IllegalStateException("Serious! Various position jumps from same position. This is definately a bug!");
                         }
-                        break; // break NexSwitch;
+                        break; // break nextSideEffectNodes;
                     }
                 }
                 // continue NextSwitch;
