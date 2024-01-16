@@ -24,6 +24,7 @@ public class VmUtils {
         addMethod("Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;");
         addMethod("Landroid/widget/Toast;->show()V");
         addMethod("Landroid/app/Activity;->getApplication()Landroid/app/Application;");
+        addMethod("Ljava/lang/Double;->decode(Ljava/lang/String;)Ljava/lang/Double;");
     }
 
     public static void setParameter(MethodState mState, Object object1, String type1, Object object2, String type2) {
