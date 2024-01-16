@@ -1,4 +1,4 @@
-package xyz.wztong.optimization.impl.exec;
+package xyz.wztong.optimization.impl.opt;
 
 import gnu.trove.map.TIntIntMap;
 import org.cf.simplify.ExecutionGraphManipulator;
@@ -11,7 +11,7 @@ import xyz.wztong.optimization.Optimization;
 import java.util.ArrayList;
 
 @SuppressWarnings("DuplicatedCode")
-public class UnreachableSwitchBranch implements Optimization.ReExecute {
+public class UnreachableSwitchBranch implements Optimization.ReOptimize {
     @Override
     public int perform(ExecutionGraphManipulator manipulator) {
         var switchOpAddresses = getValidAddresses(manipulator, address -> {
@@ -71,8 +71,8 @@ public class UnreachableSwitchBranch implements Optimization.ReExecute {
             print("@" + Integer.toHexString(switchPayloadOp.getAddress()) + " <=X= " + keyToRemove);
             // Instead of using "manipulator.replaceInstruction()"
             impl.replaceInstruction(switchPayloadOp.getIndex(), newSwitchPayloadInstruction);
+            manipulatorRebuildGraph(manipulator);
         }
-        manipulatorRebuildGraph(manipulator);
         return replaced;
     }
 

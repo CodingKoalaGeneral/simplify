@@ -7,7 +7,7 @@ import org.cf.smalivm.exception.VirtualMachineException;
 import xyz.wztong.optimization.impl.exec.ConstantSwitchSeekBack;
 import xyz.wztong.optimization.impl.exec.MergeMultipleGoto;
 import xyz.wztong.optimization.impl.exec.SwitchThenGoto;
-import xyz.wztong.optimization.impl.exec.UnreachableSwitchBranch;
+import xyz.wztong.optimization.impl.opt.UnreachableSwitchBranch;
 import xyz.wztong.optimization.impl.opt.*;
 import xyz.wztong.utils.CommonUtils;
 
@@ -38,11 +38,11 @@ public class Optimizer {
         addOptimization(new NopInstruction());
         addOptimization(new UnreachableInstruction());
         addOptimization(new UselessBranch());
+        addOptimization(new UnreachableSwitchBranch());
 
         // Re-Execute: Order required
-        addOptimization(new MergeMultipleGoto());
         addOptimization(new ConstantSwitchSeekBack(DEFAULT_SEEK_BACK_LIMIT));
-        addOptimization(new UnreachableSwitchBranch());
+        addOptimization(new MergeMultipleGoto());
         addOptimization(new SwitchThenGoto());
     }
 
