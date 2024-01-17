@@ -1,3 +1,5 @@
+# WZTong: Forked & Improved (F\*\*k \*P Manager)
+
 # Simplify
 
 [![Build Status](https://travis-ci.org/CalebFenton/simplify.svg?branch=master)](https://travis-ci.org/CalebFenton/simplify) [![Coverage Status](https://img.shields.io/coveralls/CalebFenton/simplify.svg)](https://coveralls.io/r/CalebFenton/simplify) [![Coverity Scan Build Status](https://img.shields.io/coverity/scan/7022.svg)](https://scan.coverity.com/projects/calebfenton-simplify)

@@ -16,8 +16,12 @@ public class Main {
     private static final int DEFAULT_MAX_METHOD_VISITS = 1_000_000_000;
 
     public static void main(String[] args) throws IOException, VirtualMachineException {
-        var dexPath = "C:\\Users\\WZTong\\Downloads\\IdeaProjectOffline\\DalvikDeObf\\simplify\\src\\main\\resources\\wztong\\QQPure\\App.V8.apk";
-        var methodSignature = "Lcom/example/application2/MainActivity;->onCreate(Landroid/os/Bundle;)V";
+        var dexPath = "C:\\Tencent\\2536678149\\FileRecv\\1_flow.apk";
+        var methodSignature = "Lcom/example/check/MainActivity;->onCreate(Landroid/os/Bundle;)V";
+
+//        var dexPath = "C:\\Users\\WZTong\\Downloads\\IdeaProjectOffline\\DalvikDeObf\\simplify\\src\\main\\resources\\wztong\\QQPure\\App.V8.apk";
+//        var methodSignature = "Lcom/example/application2/MainActivity;->onCreate(Landroid/os/Bundle;)V";
+
         var vm = new VirtualMachineFactory().setInputPath(dexPath).build();
 //        Optimizer.optimize(new ConstantSwitchSeekBack(), vm.execute(methodSignature));
         var smali = Optimizer.getOptimized(vm, methodSignature).toSmali(true);
