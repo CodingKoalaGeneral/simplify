@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -21,8 +22,18 @@ public class MyApkUtils {
     private static final Cipher cipher;
     private static final MessageDigest digest;
 
-    private static final byte[] CACHED_KEY = {(byte) 0xe2, (byte) 0x48, (byte) 0x25, (byte) 0xe7, (byte) 0x80, (byte) 0x46, (byte) 0xe3, (byte) 0x3c, (byte) 0x3c, (byte) 0x1e, (byte) 0x25, (byte) 0x1d, (byte) 0x4e, (byte) 0x05, (byte) 0x55, (byte) 0xe1, (byte) 0x69, (byte) 0xa8, (byte) 0x18, (byte) 0xca};
-    private static final byte[] NATIVE_KEY = {(byte) 0xe2, (byte) 0x5f, (byte) 0x48, (byte) 0x73, (byte) 0x25, (byte) 0xc6, (byte) 0xe7, (byte) 0x11, (byte) 0x80, (byte) 0x7c, (byte) 0x46, (byte) 0xc3, (byte) 0xe3, (byte) 0x1d, (byte) 0x3c, (byte) 0x97, (byte) 0x3c, (byte) 0x77, (byte) 0x1e, (byte) 0x01};
+    private static final byte[] CACHED_KEY;
+    private static final byte[] NATIVE_KEY;
+
+    static {
+        try {
+            CACHED_KEY = Files.readAllBytes(Path.of("simplify/src/main/resources/wztong/iApp/CachedKey"));
+            NATIVE_KEY = Files.readAllBytes(Path.of("simplify/src/main/resources/wztong/iApp/NativeKey"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static final Charset CHARSET = Charset.forName("gbk");
     private static final String DEFAULT_SIGNATURE = "MIIDVTCCAj2gAwIBAgIENDX1xDANBgkqhkiG9w0BAQsFADBaMQswCQYDVQQGEwJjbjELMAkGA1UECBMCYmoxCzAJBgNVBAcTAmJqMQ8wDQYDVQQKEwZpcHVzZXIxDzANBgNVBAsTBmlwdXNlcjEPMA0GA1UEAxMGaXB1c2VyMCAXDTE2MDcwMjExNDMyNloYDzIwOTgwODIxMTE0MzI2WjBaMQswCQYDVQQGEwJjbjELMAkGA1UECBMCYmoxCzAJBgNVBAcTAmJqMQ8wDQYDVQQKEwZpcHVzZXIxDzANBgNVBAsTBmlwdXNlcjEPMA0GA1UEAxMGaXB1c2VyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq2L7hQ4BgcKKKSQJNKXjGhQ2d0VLw30Mr6q7gKPO/7UTbWD8Vgllloo0KkjrRMLRqmC5nUadigdaxk6F+BNFXRBLmkM00UrSLQw1mHtoRrKkyGwIqjtqW/6W1HXg9TJw1f/afGgUJmskKilhNKpYRevjKhk+ScSGpv772rKKS+MTC3cQRZgONAFItgQcMm0xAlSij6tONuckktZ+6IYhH6qnydLHlRVMiXNUp1Ip7ehbKOjJWiJkJwRJD0XYwdTsGGYE4zBh7LUwQShf9WXeCl1HXQs9kpmckfaZ9hO0TnhgA5gm3QfG6VZlzmY9RJHn7nGXzB/2XJmr7U+SbxVOawIDAQABoyEwHzAdBgNVHQ4EFgQUN/ajnR3pvUTNwCUoIUjnBgZmma0wDQYJKoZIhvcNAQELBQADggEBAAmCoVuw1mr80uvpUNAMATKq5VVLn2gM7iJqnpezBk92Vx3PS2Es21jh9dp302PIQvqXQOqTH3EFqxHxcwaTQRFwxxp/m6mnYhDRJw06H664jtHtsnDHSnIWbVJRfJAWFtYF+h9lriW64FwT9h5oP87a3iysapGiyIp7sK+YBwLWIzs9okXih8luyt/95QQITiWsdBXoW6bQxJC3wsDz4wNh01jY3kpp+hwupSo3vCCyEX00uS/7USntCr/yu9nm+V/a6HXWe/f06ElBcfaMlPxCXxhZbt2r6/31fMhxJl/Okw5yL40D3koKCBYnWY2RCxQm0yR+JwAKTUYkl+Iu9gk=";
 
