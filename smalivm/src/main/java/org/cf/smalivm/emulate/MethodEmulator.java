@@ -49,10 +49,19 @@ public class MethodEmulator {
                 String targetMethod = methodSignature.substring(splitIndex + 2, methodSignature.indexOf('(', splitIndex));
                 String targetEmulate = TARGET_CLASS_PREFIX + targetClassName + "." + targetMethod;
                 try {
-                    @SuppressWarnings("unchecked")
-                    Class<? extends EmulatedMethod> result = (Class<? extends EmulatedMethod>) Class.forName(targetEmulate);
-                    cachedEmulatedMethods.put(methodSignature, result);
-                    return result;
+                    Class<?> result = Class.forName(targetEmulate);
+                    if (EmulatedMethod.class.isAssignableFrom(result)) {
+                        @SuppressWarnings("unchecked")
+                        Class<? extends EmulatedMethod> cEmulatedMethod = (Class<? extends EmulatedMethod>) result;
+                        cachedEmulatedMethods.put(methodSignature, cEmulatedMethod);
+                        return cEmulatedMethod;
+                    } else {
+                        if (log.isWarnEnabled()) {
+                            log.warn("Class: {} is not a subclass of EmulatedMethod.class", targetEmulate);
+                        }
+                        notDefinedMethods.add(methodSignature);
+                        return null;
+                    }
                 } catch (ClassNotFoundException e) {
                     notDefinedMethods.add(methodSignature);
                     return null;
