@@ -6,6 +6,10 @@ public class UnhandledVirtualException extends VirtualMachineException {
 
     private final Throwable exception;
 
+    public Throwable getException() {
+        return exception;
+    }
+
     public UnhandledVirtualException(Throwable exception) {
         super(exception.getMessage());
         this.exception = exception;
