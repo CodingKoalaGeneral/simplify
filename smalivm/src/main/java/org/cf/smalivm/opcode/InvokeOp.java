@@ -469,12 +469,22 @@ public class InvokeOp extends ExecutionContextOp {
             } catch (VirtualMachineException e) {
                 log.warn(e.toString());
                 if (e instanceof UnhandledVirtualException) {
-                    // An exception was thrown but there was no exception handler to catch it.
-                    // It's not clear if it's smalivm's fault or the app's code.
-                    // TODO: bubble this up to the calling method
+                    log.error("Unknown UnhandledVirtualException", e);
+                    throw new RuntimeException("Unknown UnhandledVirtualException", e);
                 }
             }
-            finishLocalMethodExecution(calleeContext, callerContext, node, graph);
+            UnhandledVirtualException unhandledVirtualException;
+            if (graph != null && (unhandledVirtualException = graph.getUnhandledVirtualException()) != null) {
+                // An exception was thrown but there was no exception handler to catch it.
+                // It's not clear if it's smalivm's fault or the app's code.
+                // TODO: bubble this up to the calling method
+
+                // Do like function: finishLocalMethodExecution
+                addException(unhandledVirtualException.getException());
+                sideEffectLevel = graph.getHighestSideEffectLevel();
+            } else {
+                finishLocalMethodExecution(calleeContext, callerContext, node, graph);
+            }
         }
     }
 
