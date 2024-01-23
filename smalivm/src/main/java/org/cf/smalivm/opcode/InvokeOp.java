@@ -479,6 +479,8 @@ public class InvokeOp extends ExecutionContextOp {
                 // It's not clear if it's smalivm's fault or the app's code.
                 // TODO: bubble this up to the calling method
 
+                // Important: set no child location to override
+                node.setChildLocations(new MethodLocation[]{});
                 // Do like function: finishLocalMethodExecution
                 addException(unhandledVirtualException.getException());
                 sideEffectLevel = graph.getHighestSideEffectLevel();
