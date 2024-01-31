@@ -1,10 +1,10 @@
 package xyz.wztong;
 
-import org.cf.smalivm.debug.Debugger;
-import org.cf.smalivm.exception.VirtualMachineException;
+import org.cf.smalivm.opcode.InvokeOp;
+import org.cf.smalivm.opcode.Op;
 import xyz.wztong.utils.VirtualMachineFactory;
 
-import java.io.IOException;
+import java.lang.reflect.Method;
 
 @SuppressWarnings("all")
 public class Main {
@@ -14,37 +14,27 @@ public class Main {
     private static final int DEFAULT_MAX_EXECUTION_TIME = 100 * 60;
     private static final int DEFAULT_MAX_METHOD_VISITS = 1_000_000_000;
 
-    public static void main(String[] args) throws IOException, VirtualMachineException {
-        var dexPath = "simplify/src/main/resources/wztong/ReflectObf/Obfuscated/classes.dex";
+    public static void main(String[] args) throws Exception {
+        var dexPath = "simplify/src/main/resources/wztong/ReflectObf/Obfuscated/disassemble";
         var methodSignature = "Lcom/example/check/MainActivity;->onCreate(Landroid/os/Bundle;)V";
-        var vm = new VirtualMachineFactory().setInputPath(dexPath).build();
-        var debugger = new Debugger(vm, methodSignature);
+        var vm = new VirtualMachineFactory()
+                .setInputPath(dexPath)
+                .setMaxAddressVisits(Integer.MAX_VALUE)
+                .setMaxMethodVisits(Integer.MAX_VALUE)
+                .build();
+        vm.execute(methodSignature);
+        System.out.println("Finished");
+    }
 
-        // debugger.addBreakpoint("Lnp/protect/a;->i(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Object;", 0);
-        // debugger.addBreakpoint("Lnp/protect/g;->b(Ljava/lang/Object;)Ljava/lang/Class;", 0);
-
-        // GetMethods
-        debugger.addBreakpoint("Lnp/protect/e;->e(Ljava/lang/Object;)[Ljava/lang/reflect/Method;", 0);
-        // GetDeclaredMethods
-        debugger.addBreakpoint("Lnp/protect/e;->b(Ljava/lang/Object;)[Ljava/lang/reflect/Method;", 0);
-
-        // v8(p0): type=Ljava/lang/String;, value=com.example.check.MainActivity
-        // v9(p1): type=[Ljava/lang/reflect/Method;, value=[protected void com.example.check.MainActivity.onCreate(android.os.Bundle)]
-        // v10(p2): type=Ljava/lang/String;, value=setContentView
-        // v11(p3): type=Ljava/lang/String;, value=void
-        // v12(p4): type=[Ljava/lang/String;, value=[int]
-        // debugger.addBreakpoint("Lnp/protect/a;->o(Ljava/lang/String;[Ljava/lang/reflect/Method;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/reflect/Method;", 0);
-
-        // debugger.addBreakpoint("Lnp/protect/e;->f(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/reflect/Method;", 0);
-
-        // ReflectMethod, Object, Value
-        // debugger.addBreakpoint("Lnp/protect/a;->g(Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", 0);
-
-        //   Executor:
-        // debugger.addBreakpoint("Lnp/protect/e;->c(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", 0x1d);
-
-        debugger.run();
-        System.out.println();
+    public static boolean stop(Op op) {
+        if (op instanceof InvokeOp invokeOp) {
+            var strInvokeOp = invokeOp.toString();
+            if (strInvokeOp.contains("Ljava/lang/Object;->hashCode()I")) return false;
+            if (strInvokeOp.startsWith("invoke-static") && strInvokeOp.endsWith(")I")) return false;
+            return true;
+        } else {
+            return false;
+        }
     }
 
 }

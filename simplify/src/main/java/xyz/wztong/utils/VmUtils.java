@@ -6,12 +6,15 @@ import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.emulate.EmulatedMethod;
 import org.cf.smalivm.emulate.MethodEmulator;
+import org.cf.smalivm.type.SelfDefinedInstance;
+import org.cf.smalivm.type.UnknownValue;
 import org.cf.util.ClassNameUtils;
 import org.jf.dexlib2.builder.BuilderTryBlock;
 import org.jf.dexlib2.writer.io.FileDataStore;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -19,6 +22,14 @@ public class VmUtils {
 
     public static void setParameter(MethodState mState, Object object1, String type1, Object object2, String type2) {
         setParameter(mState, new HeapItem(object1, type1), new HeapItem(object2, type2));
+    }
+
+    public static String getInternalType(Object obj) {
+        if (obj instanceof SelfDefinedInstance selfDefinedInstance) {
+            return selfDefinedInstance.getInternalType();
+        } else {
+            return ClassNameUtils.toInternal(obj.getClass());
+        }
     }
 
     public static void setParameter(MethodState mState, Object object, String type) {
@@ -86,5 +97,28 @@ public class VmUtils {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static boolean isUnknownValue(HeapItem heapItem) {
+        if (heapItem == null) {
+            return true;
+        }
+        var heapItemValue = heapItem.getValue();
+        if (heapItemValue == null) {
+            return false;
+        }
+        return heapItemValue.getClass() == UnknownValue.class;
+    }
+
+    public static String getVirtualMethodDescriptor(Method method) {
+        var sb = new StringBuilder(method.getName());
+        sb.append("(");
+        var params = method.getParameterTypes();
+        for (var param : params) {
+            sb.append(ClassNameUtils.toInternal(param));
+        }
+        sb.append(")");
+        sb.append(ClassNameUtils.toInternal(method.getReturnType()));
+        return sb.toString();
     }
 }

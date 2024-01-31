@@ -1,8 +1,6 @@
 package xyz.wztong.optimization;
 
 import org.cf.simplify.ExecutionGraphManipulator;
-import org.cf.smalivm.context.HeapItem;
-import org.cf.smalivm.type.UnknownValue;
 import xyz.wztong.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -24,17 +22,6 @@ public interface Optimization {
     }
 
     interface ReOptimize extends Optimization {
-    }
-
-    static boolean isUnknownValue(HeapItem heapItem) {
-        if (heapItem == null) {
-            return true;
-        }
-        var heapItemValue = heapItem.getValue();
-        if (heapItemValue == null) {
-            return false;
-        }
-        return heapItemValue.getClass() == UnknownValue.class;
     }
 
     default void manipulatorRebuildGraph(ExecutionGraphManipulator manipulator) {

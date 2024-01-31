@@ -16,6 +16,7 @@ import org.jf.dexlib2.builder.instruction.BuilderInstruction30t;
 import xyz.wztong.utils.Utils;
 import xyz.wztong.optimization.Optimization;
 import xyz.wztong.utils.ReflectUtils;
+import xyz.wztong.utils.VmUtils;
 
 import java.util.*;
 
@@ -130,7 +131,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     var testNodeAddress = testNode.getKey().getAddress();
                     var useThisNode = testNode.getValue().forEach(register -> {
                         var consensus = manipulator.getRegisterConsensus(testNodeAddress, register);
-                        return consensus != null && !Optimization.isUnknownValue(consensus);
+                        return consensus != null && !VmUtils.isUnknownValue(consensus);
                     });
                     if (useThisNode) {
                         var sideEffectNodesMapped = new LinkedList<ExecutionNode>();
@@ -270,7 +271,7 @@ public class ConstantSwitchSeekBack implements Optimization.ReExecute{
                     // move-result(*) SIDE_EFFECT
                     sideEffectRegisters.remove(toRegister);
                     var toRegisterHeap = beforeInvokeMethodState.peekRegister(toRegister);
-                    if (Optimization.isUnknownValue(toRegisterHeap) || !toRegisterHeap.isImmutable()) {
+                    if (VmUtils.isUnknownValue(toRegisterHeap) || !toRegisterHeap.isImmutable()) {
                         return ConstantParentStatus.TERMINATE;
                     }
                     sideEffectRegisters.addAll(knownParameterRegisters);
