@@ -1,17 +1,17 @@
 package org.cf.demoapp;
 
 import org.cf.smalivm.VirtualMachine;
-import org.cf.smalivm.exception.VirtualMachineException;
 import org.cf.smalivm.VirtualMachineFactory;
 import org.cf.smalivm.context.ExecutionContext;
 import org.cf.smalivm.context.ExecutionGraph;
 import org.cf.smalivm.context.HeapItem;
 import org.cf.smalivm.context.MethodState;
 import org.cf.smalivm.emulate.MethodEmulator;
+import org.cf.smalivm.exception.VirtualMachineException;
 
 public class Main {
 
-    private static final String SMALI_PATH = "resources/";
+    private static final String SMALI_PATH = "C:\\Users\\WZTong\\OneDrive\\Documents\\IdeaProject\\DalvikDeObf\\demoapp\\resources\\";
 
     private static VirtualMachine vm;
 

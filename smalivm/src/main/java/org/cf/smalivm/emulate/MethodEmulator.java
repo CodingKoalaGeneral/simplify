@@ -2,19 +2,76 @@ package org.cf.smalivm.emulate;
 
 import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.VirtualMachine;
+import org.cf.smalivm.configuration.Configuration;
 import org.cf.smalivm.context.ExecutionContext;
 import org.cf.smalivm.opcode.Op;
+import org.cf.util.ClassNameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MethodEmulator {
 
     private static final Logger log = LoggerFactory.getLogger(MethodEmulator.class.getSimpleName());
-    private static Map<String, Class<? extends EmulatedMethod>> emulatedMethods = new HashMap<>();
+
+    private static final Set<String> notDefinedMethods = new HashSet<>();
+
+    private static final Map<String, Class<? extends EmulatedMethod>> cachedEmulatedMethods = new HashMap<>();
+
+    // ConcurrentHashMap.containsKey use get method while HashMap use *private* getNode method
+    private static final Map<String, Class<? extends EmulatedMethod>> emulatedMethods = new ConcurrentHashMap<>() {
+
+        public static final String TARGET_CLASS_PREFIX = Configuration.SELF_DEFINED_EMULATE_METHODS_PACKAGE + '.';
+
+        @Override
+        public Class<? extends EmulatedMethod> get(Object key) {
+            Class<? extends EmulatedMethod> superResult = super.get(key);
+            if (superResult != null) {
+                return superResult;
+            }
+            Class<? extends EmulatedMethod> cachedResult = cachedEmulatedMethods.get(key);
+            if (cachedResult != null) {
+                return cachedResult;
+            }
+            if (key instanceof String) {
+                String methodSignature = (String) key;
+                if (notDefinedMethods.contains(methodSignature)) {
+                    return null;
+                }
+                int splitIndex = methodSignature.indexOf("->");
+                String targetClass = methodSignature.substring(0, splitIndex);
+                String targetClassName = ClassNameUtils.internalToSource(targetClass);
+                String targetMethod = methodSignature.substring(splitIndex + 2, methodSignature.indexOf('(', splitIndex));
+                String targetEmulate = TARGET_CLASS_PREFIX + targetClassName + "." + targetMethod;
+                try {
+                    Class<?> result = Class.forName(targetEmulate);
+                    if (EmulatedMethod.class.isAssignableFrom(result)) {
+                        @SuppressWarnings("unchecked")
+                        Class<? extends EmulatedMethod> cEmulatedMethod = (Class<? extends EmulatedMethod>) result;
+                        cachedEmulatedMethods.put(methodSignature, cEmulatedMethod);
+                        return cEmulatedMethod;
+                    } else {
+                        if (log.isWarnEnabled()) {
+                            log.warn("Class: {} is not a subclass of EmulatedMethod.class", targetEmulate);
+                        }
+                        notDefinedMethods.add(methodSignature);
+                        return null;
+                    }
+                } catch (ClassNotFoundException e) {
+                    notDefinedMethods.add(methodSignature);
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        }
+
+    };
 
     static {
         addMethod("Landroid/text/TextUtils;->isEmpty(Ljava/lang/CharSequence;)Z", android_text_TextUtils_isEmpty.class);

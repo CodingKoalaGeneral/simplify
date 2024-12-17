@@ -58,7 +58,7 @@ public class ClassBuilder {
     }
 
     public byte[] build(ClassDef classDef) {
-        log.debug("Building input class: {}", classDef);
+        log.trace("Building input class: {}", classDef);
 
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         visitClass(classDef, classWriter);

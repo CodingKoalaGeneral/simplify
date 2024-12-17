@@ -62,6 +62,7 @@ public class Debugger {
     return node;
   }
 
+  // TODO: Properly handle children
   private void stepOutOfInvoke() {
     MethodExecutor methodExecutor = steppedMethodExecutors.pop();
     InvokeOp invokeOp = steppedInvokeOps.pop();

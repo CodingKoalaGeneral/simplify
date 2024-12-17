@@ -19,6 +19,7 @@ import org.jf.dexlib2.iface.instruction.ReferenceInstruction;
 import org.jf.dexlib2.iface.instruction.WideLiteralInstruction;
 import org.jf.dexlib2.iface.reference.Reference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +82,8 @@ public class ConstantPropagationStrategyTest {
         }
     }
 
-    public static class KnownValues {
+    @Nested
+    class KnownValues {
 
         @Test
         public void addInt2AddrConstantizesToExpectedInstruction() {
@@ -157,7 +159,8 @@ public class ConstantPropagationStrategyTest {
         }
     }
 
-    public static class UnitTests {
+    @Nested
+    class UnitTests {
 
         @Test
         public void constantizableHandlesNull() {
@@ -183,7 +186,8 @@ public class ConstantPropagationStrategyTest {
 
     }
 
-    public static class UnknownValues {
+    @Nested
+    class UnknownValues {
 
         private VMState initial;
 

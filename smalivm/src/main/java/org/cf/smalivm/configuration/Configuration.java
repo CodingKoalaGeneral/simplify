@@ -16,6 +16,7 @@ public class Configuration {
     public static final String UNSAFE_METHODS_PATH = "unsafe_methods.cfg";
     public static final String FRAMEWORK_CLASSES_PATH = "framework_classes.cfg";
     public static final String SAFE_FRAMEWORK_CLASSES_PATH = "safe_framework_classes.cfg";
+    public static final String SELF_DEFINED_EMULATE_METHODS_PACKAGE = "xyz.wztong.emulate";
 
     private static Configuration instance = null;
     private final Set<String> immutableClasses;

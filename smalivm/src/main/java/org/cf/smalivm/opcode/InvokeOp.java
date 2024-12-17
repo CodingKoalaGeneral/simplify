@@ -5,6 +5,7 @@ import gnu.trove.list.linked.TIntLinkedList;
 import org.cf.smalivm.*;
 import org.cf.smalivm.context.*;
 import org.cf.smalivm.dex.CommonTypes;
+import org.cf.smalivm.dex.SmaliClassLoader;
 import org.cf.smalivm.emulate.MethodEmulator;
 import org.cf.smalivm.exception.UnhandledVirtualException;
 import org.cf.smalivm.exception.VirtualMachineException;
@@ -16,8 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -308,8 +311,9 @@ public class InvokeOp extends ExecutionContextOp {
                 type = item.getType();
             }
 
-            if (!isInitializing) {
+            if (!isInitializing || (i >= (method.isStatic() ? 0 : 1))) {
                 // Even if immutable type, internal state can change in the initializer.
+                // **But not parameter**
                 if (vm.getConfiguration().isImmutable(type)) {
                     if (log.isTraceEnabled()) {
                         log.trace("{} is immutable", type);
@@ -330,6 +334,36 @@ public class InvokeOp extends ExecutionContextOp {
             // TODO: If we're refusing to execute an <init> method, should create a new instance of at least the stub class or something
             // and update identities. That way we don't have weird Uninitialized instances floating around. Look at TestExceptionHandling
             // and how ExceptionalCode throws CustomException but Throwable isn't whitelisted.
+
+            // TODO: Raw implement, this should only be called in non-static method
+            log.warn("TODO: Implement invoke");
+            String methodSignature = method.getSignature();
+            if (vm.getConfiguration().isSafe(methodSignature)) {
+                String[] analyzedParameterTypesBinary = Arrays.stream(analyzedParameterTypes).map(ClassNameUtils::internalToBinary).toArray(String[]::new);
+                String className = analyzedParameterTypesBinary[0];
+                SmaliClassLoader classLoader = vm.getClassLoader();
+                try {
+                    Class<?> cItem = classLoader.loadClass(className);
+                    Class<?>[] cParameter = new Class<?>[analyzedParameterTypesBinary.length - 1];
+                    for (int i = 0; i < analyzedParameterTypesBinary.length - 1; i++) {
+                        cParameter[i] = Class.forName(analyzedParameterTypesBinary[i + 1]);
+                    }
+                    Constructor<?> ccItem = cItem.getConstructor(cParameter);
+                } catch (ClassNotFoundException e) {
+                    if (log.isWarnEnabled()) {
+                        log.warn("Unable to find target class: {}", className);
+                    }
+                } catch (NoSuchMethodException e) {
+                    if (log.isWarnEnabled()) {
+                        log.warn("Unable to find target constructor: {}", (Object) Arrays.copyOfRange(analyzedParameterTypesBinary, 1, analyzedParameterTypesBinary.length));
+                    }
+                }
+            } else {
+                if (log.isWarnEnabled()) {
+                    log.warn("Not executing unsafe init method: {}", methodSignature);
+                }
+            }
+
         }
 
         if (!method.returnsVoid()) {
@@ -435,12 +469,24 @@ public class InvokeOp extends ExecutionContextOp {
             } catch (VirtualMachineException e) {
                 log.warn(e.toString());
                 if (e instanceof UnhandledVirtualException) {
-                    // An exception was thrown but there was no exception handler to catch it.
-                    // It's not clear if it's smalivm's fault or the app's code.
-                    // TODO: bubble this up to the calling method
+                    log.error("Unknown UnhandledVirtualException", e);
+                    throw new RuntimeException("Unknown UnhandledVirtualException", e);
                 }
             }
-            finishLocalMethodExecution(calleeContext, callerContext, node, graph);
+            UnhandledVirtualException unhandledVirtualException;
+            if (graph != null && (unhandledVirtualException = graph.getUnhandledVirtualException()) != null) {
+                // An exception was thrown but there was no exception handler to catch it.
+                // It's not clear if it's smalivm's fault or the app's code.
+                // TODO: bubble this up to the calling method
+
+                // Important: set no child location to override
+                node.setChildLocations(new MethodLocation[]{});
+                // Do like function: finishLocalMethodExecution
+                addException(unhandledVirtualException.getException());
+                sideEffectLevel = graph.getHighestSideEffectLevel();
+            } else {
+                finishLocalMethodExecution(calleeContext, callerContext, node, graph);
+            }
         }
     }
 
@@ -536,7 +582,11 @@ public class InvokeOp extends ExecutionContextOp {
         if (virtualReference instanceof UninitializedInstance) {
             UninitializedInstance instance = (UninitializedInstance) virtualReference;
             referenceType = instance.getType();
-        } else {
+        } else if (virtualReference instanceof SelfDefinedInstance) {
+            String targetType = ((SelfDefinedInstance) virtualReference).getInternalType();
+            referenceType = classManager.getVirtualType(targetType);
+        }
+        else{
             String targetType = ClassNameUtils.toInternal(virtualReference.getClass());
             referenceType = classManager.getVirtualType(targetType);
         }

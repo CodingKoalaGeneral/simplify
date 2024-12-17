@@ -7,6 +7,7 @@ import gnu.trove.map.hash.TIntObjectHashMap;
 import org.cf.smalivm.SideEffect;
 import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.dex.CommonTypes;
+import org.cf.smalivm.exception.UnhandledVirtualException;
 import org.cf.smalivm.opcode.Op;
 import org.cf.smalivm.opcode.OpCreator;
 import org.cf.smalivm.type.*;
@@ -32,6 +33,20 @@ public class ExecutionGraph implements Iterable<ExecutionNode> {
     private final VirtualMachine vm;
     private final VirtualMethod method;
     private final int[] terminatingAddresses;
+    private UnhandledVirtualException unhandledVirtualException = null;
+
+    public UnhandledVirtualException getUnhandledVirtualException() {
+        return unhandledVirtualException;
+    }
+
+    public ExecutionGraph setUnhandledVirtualException(UnhandledVirtualException unhandledVirtualException) {
+        if (this.unhandledVirtualException != null) {
+            throw new RuntimeException("Multiple unhandledVirtualException in single graph, this may be a bug (multiple throw)");
+        } else {
+            this.unhandledVirtualException = unhandledVirtualException;
+            return this;
+        }
+    }
 
     public ExecutionGraph(ExecutionGraph other) {
         method = other.method;
@@ -311,7 +326,7 @@ public class ExecutionGraph implements Iterable<ExecutionNode> {
 
     public SideEffect.Level getHighestSideEffectLevel() {
         SideEffect.Level result = getHighestMethodSideEffectLevel();
-        if (result == SideEffect.Level.STRONG) {
+        if (result == SideEffect.Level.STRONG || method.isStatic() || vm.getConfiguration().isSafe(method.getSignature())) {
             return result;
         }
 
@@ -583,7 +598,7 @@ public class ExecutionGraph implements Iterable<ExecutionNode> {
             Op op = getOp(address);
             sb.append(op.toString());
             if (includeAddress) {
-                sb.append(" # @").append(address);
+                sb.append(" # @").append(Integer.toHexString(address)).append(" (").append(address).append(")");
             }
             sb.append('\n');
         }

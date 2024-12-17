@@ -56,7 +56,7 @@ public class NodeExecutor {
                             log.error("{} unhandled virtual exception: ", node, exception);
                         }
 
-                        throw new UnhandledVirtualException(exception);
+                        throw new UnhandledVirtualException(node, exception);
                     } else {
                         // Op has children, doesn't *always* throw, probably virtual exception
                         if (log.isTraceEnabled()) {

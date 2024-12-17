@@ -3,6 +3,7 @@ package org.cf.smalivm;
 import org.cf.smalivm.configuration.Configuration;
 import org.cf.smalivm.context.*;
 import org.cf.smalivm.dex.SmaliClassLoader;
+import org.cf.smalivm.exception.UnhandledVirtualException;
 import org.cf.smalivm.exception.VirtualMachineException;
 import org.cf.smalivm.type.*;
 import org.cf.util.Utils;
@@ -73,17 +74,38 @@ public class VirtualMachine {
         }
 
         MethodExecutor methodExecutor = methodExecutorFactory.build(calleeContext, callerContext);
-        methodExecutor.execute();
-
-        return finishExecution(methodExecutor, callerContext, parameterRegisters);
+        try {
+            methodExecutor.execute();
+            return finishExecution(methodExecutor, callerContext, parameterRegisters);
+        } catch (UnhandledVirtualException e) {
+            ExecutionGraph result = finishExecution(methodExecutor, callerContext, parameterRegisters, new int[]{e.getNode().getAddress()});
+            result.setUnhandledVirtualException(e);
+            return result;
+        }
     }
 
     private ExecutionGraph finishExecution(MethodExecutor methodExecutor, ExecutionContext callerContext, int[] parameterRegisters) {
-        if ((methodExecutor.getExecutionGraph() != null) && (callerContext != null)) {
-            collapseMultiverse(methodExecutor.getVirtualMethod(), methodExecutor.getExecutionGraph(), callerContext, parameterRegisters);
+        return finishExecution(methodExecutor, callerContext, parameterRegisters, null);
+    }
+
+    private ExecutionGraph finishExecution(MethodExecutor methodExecutor, ExecutionContext callerContext, int[] parameterRegisters, int[] overrideConnectedTerminatingAddress) {
+        ExecutionGraph originalGraph = methodExecutor.getExecutionGraph();
+        ExecutionGraph graph;
+        if (overrideConnectedTerminatingAddress == null) {
+            graph = originalGraph;
+        } else {
+            graph = new ExecutionGraph(originalGraph, true) {
+                @Override
+                public int[] getConnectedTerminatingAddresses() {
+                    return overrideConnectedTerminatingAddress;
+                }
+            };
+        }
+        if ((graph != null) && (callerContext != null)) {
+            collapseMultiverse(methodExecutor.getVirtualMethod(), graph, callerContext, parameterRegisters);
         }
 
-        return methodExecutor.getExecutionGraph();
+        return graph;
     }
 
     public MethodExecutor startDebug(ExecutionContext calleeContext, ExecutionContext callerContext) {
@@ -219,12 +241,17 @@ public class VirtualMachine {
      */
     private void collapseMultiverse(VirtualMethod calledMethod, ExecutionGraph graph, ExecutionContext callerContext, int[] parameterRegisters) {
         int[] terminatingAddresses = graph.getConnectedTerminatingAddresses();
+        MethodState callerState = callerContext.getMethodState();
         if (parameterRegisters != null) {
             MethodState callerMethodState = callerContext.getMethodState();
             List<String> parameterTypes = calledMethod.getParameterTypeNames();
             int parameterRegister = graph.getNodePile(0).get(0).getContext().getMethodState().getParameterStart();
             for (int parameterIndex = 0; parameterIndex < parameterTypes.size(); parameterIndex++) {
-                String type = parameterTypes.get(parameterIndex);
+                String type;
+                HeapItem actualCallerItem = callerState.peekParameter(parameterRegisters[parameterIndex]);
+                if (actualCallerItem == null || (type = actualCallerItem.getType()) == null) {
+                    type = parameterTypes.get(parameterIndex);
+                }
                 if (configuration.isMutable(type)) {
                     HeapItem item = getMutableParameterConsensus(terminatingAddresses, graph, parameterRegister);
                     int register = parameterRegisters[parameterIndex];

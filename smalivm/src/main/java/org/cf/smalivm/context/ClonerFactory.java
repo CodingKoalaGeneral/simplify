@@ -2,7 +2,6 @@ package org.cf.smalivm.context;
 
 import com.rits.cloning.Cloner;
 import com.rits.cloning.ObjenesisInstantiationStrategy;
-
 import org.cf.smalivm.VirtualMachine;
 import org.cf.smalivm.type.ClassManager;
 import org.cf.util.ClassNameUtils;
@@ -38,7 +37,12 @@ class ClonerFactory {
         Set<String> immutableClasses = vm.getConfiguration().getImmutableClasses();
         ClassLoader classLoader = vm.getClassLoader();
 
-        cloner = new Cloner(new ObjenesisInstantiationStrategy());
+        cloner = new Cloner(new ObjenesisInstantiationStrategy()) {
+            @Override
+            protected boolean considerImmutable(Class<?> clz) {
+                return super.considerImmutable(clz) || immutableClasses.contains(ClassNameUtils.toInternal(clz));
+            }
+        };
         for (String immutableClass : immutableClasses) {
             /*
              * Avoid creating a cloner because it's expensive -- it has to build and load lots of classes.
@@ -47,10 +51,19 @@ class ClonerFactory {
              * - inner classes
              * - protected packages
              */
-            if (immutableClass.length() <= 1 || immutableClass.contains("$") || immutableClass.startsWith("Ljava/")) {
+            if (immutableClass.length() <= 1 || immutableClass.contains("$")) {
                 continue;
             }
-
+            // Make sure listed java builtin class ignored
+            if (immutableClass.startsWith("Ljava/")) {
+                try {
+                    Class<?> cls = Class.forName(ClassNameUtils.internalToBinary(immutableClass));
+                    cloner.dontClone(cls);
+                } catch (ClassNotFoundException e) {
+                    log.trace("Java class {} not found", immutableClass);
+                }
+                continue;
+            }
             String binaryName = ClassNameUtils.internalToBinary(immutableClass);
             Class<?> klazz;
             try {

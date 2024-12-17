@@ -15,6 +15,7 @@ import org.cf.smalivm.type.UnknownValue;
 import org.cf.smalivm.type.VirtualMethod;
 import org.cf.util.ClassNameUtils;
 import org.jf.dexlib2.Opcode;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +77,8 @@ public class UnreflectionStrategyTest {
         assertArrayEquals(expectedLines, actualLines);
     }
 
-    public static class FieldUnreflection {
+    @Nested
+    class FieldUnreflection {
 
         private static final String[] EXPECTED_SHARED_SMALI =
                 { "invoke-virtual {r0, r1}, Ljava/lang/Class;->getDeclaredField(Ljava/lang/String;)" +
@@ -150,7 +152,8 @@ public class UnreflectionStrategyTest {
         }
     }
 
-    public static class MethodUnreflectionWithImpossibleScenarios {
+    @Nested
+    class MethodUnreflectionWithImpossibleScenarios {
 
         private static final String[] EXPECTED_SHARED_SMALI = new String[] { "nop", "invoke-virtual {r0, r1, r2}, " +
                                                                                     "Ljava/lang/reflect/Method;->invoke" +
@@ -176,7 +179,8 @@ public class UnreflectionStrategyTest {
         }
     }
 
-    public static class MethodUnreflectionWithInterfaceMethod {
+    @Nested
+    class MethodUnreflectionWithInterfaceMethod {
 
         private static final java.lang.reflect.Method METHOD = getMethod(List.class, "isEmpty", new Class<?>[0]);
 
@@ -196,7 +200,8 @@ public class UnreflectionStrategyTest {
 
     }
 
-    public static class MethodUnreflectionWithPrivateInstanceMethod {
+    @Nested
+    class MethodUnreflectionWithPrivateInstanceMethod {
 
         private static final String[] EXPECTED_SMALI = new String[] { "nop", "invoke-direct {r1}, " +
                                                                              "Lunreflection_strategy_test;" +
@@ -228,7 +233,8 @@ public class UnreflectionStrategyTest {
         }
     }
 
-    public static class MethodUnreflectionWithPrivateStaticMethod {
+    @Nested
+    class MethodUnreflectionWithPrivateStaticMethod {
 
         private static final java.lang.reflect.Method METHOD =
                 getMethod(CLASS, "privateStaticFourParameters", int.class, int.class, int.class, int.class);
@@ -274,7 +280,8 @@ public class UnreflectionStrategyTest {
         }
     }
 
-    public static class MethodUnreflectionWithPublicInstanceMethod {
+    @Nested
+    class MethodUnreflectionWithPublicInstanceMethod {
 
         private static final String[] EXPECTED_SHARED_SMALI =
                 new String[] { "nop", "move-object/16 r3, r1", "const/4 r4, 0x0", "aget-object r4, r2, r4",
@@ -332,7 +339,8 @@ public class UnreflectionStrategyTest {
 
     }
 
-    public static class MethodUnreflectionWithZeroParameters {
+    @Nested
+    class MethodUnreflectionWithZeroParameters {
 
         private static final java.lang.reflect.Method METHOD = getMethod(System.class, "gc", new Class<?>[0]);
 
@@ -364,7 +372,8 @@ public class UnreflectionStrategyTest {
         }
     }
 
-    public static class ProtectedMethods {
+    @Nested
+    class ProtectedMethods {
 
         @Test
         public void instanceGetOpcodes() {

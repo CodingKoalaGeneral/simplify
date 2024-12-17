@@ -17,19 +17,19 @@ dependencies {
     testImplementation depends.junit_compile
     testRuntimeOnly depends.junit_engine
     testRuntimeOnly depends.junit_runner
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+//    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-    }
-}
+//compileKotlin {
+//    kotlinOptions {
+//        jvmTarget = JavaVersion.VERSION_1_8
+//    }
+//}
+//compileTestKotlin {
+//    kotlinOptions {
+//        jvmTarget = JavaVersion.VERSION_1_8
+//    }
+//}
 
 test.dependsOn project(':smalivm').tasks.getByName('testClasses')
 
